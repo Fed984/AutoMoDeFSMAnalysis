@@ -1,0 +1,73 @@
+#!/bin/bash
+###############################################################################
+# This script is to tune the Finite State Machine inside the AutoMoDe software.
+# This version of the script produces a logfile for each experiments and stores
+# it in a tmp file.
+#
+# PARAMETERS:
+# $1 is the ID of the candidate to be evaluated
+# $2 is the instance ID
+# $3 is the seed
+# $4 is the instance name
+# The rest ($* after `shift 4') are parameters for running AutoMoDe (i.e. the
+#					  finite state machine configuration).
+#
+# RETURN VALUE:
+# This script should print a single numerical value (the value to be minimized).
+###############################################################################
+
+# Path to the AutoMoDe software:
+# Note that this script is ran from the execution directory
+
+#EXE=$(pwd)/../../../bin/automode_main
+EXE=/home/fpagnozzi/demiurge/AutoMoDe-private/bin/automode_main
+
+CONFIG_ID="$1"
+INSTANCE_ID="$2"
+SEED="$3"
+INSTANCE="$4"
+
+# All other parameters are the candidate parameters to be passed to program
+shift 4 || error "Not enough parameters to $0"
+CONFIG_PARAMS=$*
+
+# In case of error, we print the current time:
+error() {
+    echo "`TZ=UTC date`: error: $@" >&2
+    exit 1
+}
+
+if [ ! -x "${EXE}" ]; then
+    error "${EXE}: not found or not executable (pwd: $(pwd))"
+fi
+
+
+# Saving the FSM configuration
+FSM_LOG="fsm_log.txt"
+echo ${CONFIG_PARAMS} >> $FSM_LOG
+
+start=`date +%s`
+STD_OUT=`mktemp /tmp/fsm-$CONFIG_ID-$SEED.XXXXXX`
+# Now we can call AutoMoDe by building a command line with all parameters for it
+# and we collect its output that contains the score
+#OUTPUT=$($EXE -t -n -c $INSTANCE --seed $SEED --fsm-config ${CONFIG_PARAMS})
+$EXE -t -n -c $INSTANCE --seed $SEED --fsm-config ${CONFIG_PARAMS} > $STD_OUT
+OUTPUT=$(cat $STD_OUT)
+
+#echo $OUTPUT >> test_log
+#end=`date +%s`
+
+# Extract the score from the AutoMoDe (i.e. and ARGoS) output
+SCORE=$(echo ${OUTPUT} | grep -o -E 'Score [-+0-9.e]+' | cut -d ' ' -f2)
+if ! [[ "$SCORE" =~ ^[-+0-9.e]+$ ]] ; then
+    error "Output is not a number"
+fi
+
+#TIME=$(echo "$end - $start" | bc -l)
+
+echo " score $SCORE" >> $FSM_LOG
+
+# Print score!
+echo "-$SCORE"
+
+exit 0
