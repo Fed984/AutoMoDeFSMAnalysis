@@ -94,6 +94,8 @@ def read_scenario_file(scenario_txt):
 		
 	return instances
 	
+# Run the experiments for the naive comparison and compares the results with the wilcoxon pairwise test 
+# the function returns the pvalue
 def execute_experiments(max_runs, instances, original_fsm, pruned_fsm, default_target_runner):
 	instances_num = len(instances)         # get the number of instances
 	random_seeds = int(max_runs/instances_num)  # number of random seeds to generate for max_runs
