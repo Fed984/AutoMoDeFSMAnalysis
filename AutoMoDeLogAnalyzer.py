@@ -150,6 +150,7 @@ def execute_experiments(max_runs, instances, original_fsm, pruned_fsm, default_t
 		else:
 			print('Probably different distributions')
 	else:
+		p=0
 		print("The two FSM reported exactly the same results")
 			
 	return p
