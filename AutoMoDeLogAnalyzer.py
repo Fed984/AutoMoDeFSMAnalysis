@@ -244,6 +244,8 @@ while(params):
 		testPrunedFSM = True
 	elif(fsm_tokenizer.peek() == "--fsm-config"):
 		params=False
+	else:
+		params=False
 
 # move the current token to the start of the FSM
 pos = fsm_tokenizer.seek("--fsm-config")
