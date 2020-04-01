@@ -37,19 +37,22 @@ import scipy.stats
 
 # print how to use the script
 def command_usage():
-	print("Usage: {0} historyfile_path [--threshold value] --fsm-config <finite state machine description>".format(sys.argv[0]))	
+	print("Usage   : \n\t {0} historyfile_path [options] --fsm-config <finite state machine description>".format(sys.argv[0]))
+	print("Options : ")
+	print("           --")	
 	
 # the states_map represents the transition map for the states
 # this function updates the list when a state is removed so that
 # the transitions points to the right states
 def update_states_map(states_map, nstates, remove_state):
-	new_idx = -1
+	new_idx = 0
 	new_nstates = nstates-1
-	for i in range(0,len(states_map)):
-		if(i != remove_state and i < new_nstates):		
-			new_idx += 1	
+	max_idx = nstates-2
+	for i in range(0,len(states_map)):					
 		states_map[i] = new_idx
-	
+		if(i != remove_state and i < new_nstates):		
+			new_idx = (new_idx + 1)%max_idx	
+			
 	return states_map
 	
 # Reads the scenario.txt file to get the training instances
@@ -186,17 +189,21 @@ fsm_tokenizer.next_token() # history file
 
 #Checks if a value for the threshold has been provided,
 # otherwise it uses the default one 0
+
 params=True
 while(params):
 	if(fsm_tokenizer.peek() == "--threshold"):
 		fsm_tokenizer.next_token()
 		cut_thresh = fsm_tokenizer.getFloat()
+	elif(fsm_tokenizer.peek() == "--help"):
+		command_usage()
+		exit(0)
 	elif(fsm_tokenizer.peek() == "--scenario"):
 		fsm_tokenizer.next_token()
-		default_scenario = fsm_tokenizer.next_token()
+		default_scenario = fsm_tokenizer.next_token()		
 	elif(fsm_tokenizer.peek() == "--targetrunner"):
 		fsm_tokenizer.next_token()
-		default_target_runner = fsm_tokenizer.next_token()	
+		default_target_runner = fsm_tokenizer.next_token()
 	elif(fsm_tokenizer.peek() == "--max_runs"):
 		fsm_tokenizer.next_token()
 		max_runs = fsm_tokenizer.getInt()
@@ -219,6 +226,11 @@ for arg in range(pos+1, len(sys.argv)):
 	original_fsm += sys.argv[arg] + " "
 
 fsm_tokenizer.next_token() #this token is --nstates
+if(testPrunedFSM):
+	print("Experiments will be executed to compare the pruned FSM with the orignal one")
+	print("Scenario file  : {0}".format(default_scenario))
+	print("Target runner  : {0}".format(default_target_runner))	
+	print("Numer of tests : {0}".format(max_runs))
 
 print("Threshold value for state pruning : {0}".format(cut_thresh))
 nstates = int(fsm_tokenizer.next_token())
