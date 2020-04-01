@@ -220,7 +220,7 @@ fsm_tokenizer.next_token() # history file
 # otherwise it uses the default one 0
 
 params=True
-while(params):
+while(params and fsm_tokenizer.has_more_tokens()):
 	if(fsm_tokenizer.peek() == "--threshold"):
 		fsm_tokenizer.next_token()
 		cut_thresh = fsm_tokenizer.getFloat()
@@ -245,7 +245,7 @@ while(params):
 	elif(fsm_tokenizer.peek() == "--fsm-config"):
 		params=False
 	else:
-		params=False
+		fsm_tokenizer.next_token()
 
 # move the current token to the start of the FSM
 pos = fsm_tokenizer.seek("--fsm-config")
@@ -264,7 +264,7 @@ if(testPrunedFSM):
 	print("Experiments will be executed to compare the pruned FSM with the orignal one")
 	print("Scenario file  : {0}".format(default_scenario))
 	print("Target runner  : {0}".format(default_target_runner))	
-	print("Numer of tests : {0}".format(max_runs))
+	print("Number of tests : {0}".format(max_runs))
 
 print("Threshold value for state pruning : {0}".format(cut_thresh))
 nstates = int(fsm_tokenizer.next_token())
