@@ -39,7 +39,25 @@ import scipy.stats
 def command_usage():
 	print("Usage   : \n\t {0} historyfile_path [options] --fsm-config <finite state machine description>".format(sys.argv[0]))
 	print("Options : ")
-	print("           --")	
+	print("\t --threshold VALUE")
+	print("\t\t Set the threshold used to decide wether to delete a state.")
+	print("\t\t The value represent a percentage that should go from 0 (the default value,")
+	print("\t\t a state is delete if it is never accessed) to 1 (all the states are deleted).\n")	
+	print("\t --test")	
+	print("\t\t When used the script will run RUN experiments with the original and pruned FSM.")
+	print("\t\t The results are compared using the Wilcoxon paired statistical test.\n")
+	print("\t --scenario FILE")
+	print("\t\t The script will run the experiments using the instances specified in the irace")
+	print("\t\t scenario file FILE.\n")
+	print("\t --target FILE") 
+	print("\t\t The script will use the target-runner FILE to run the experiments.\n")
+	print("\t --runs RUN")
+	print("\t\t The script will run RUN experiments before the statistical test.\n")
+	print("\t --rseed SEED")
+	print("\t\t The random seed used to initialize the random seed generator\n")
+	print("\t --help")
+	print("\t\t prints this help.\n")
+	
 	
 # the states_map represents the transition map for the states
 # this function updates the list when a state is removed so that
@@ -99,12 +117,12 @@ def read_scenario_file(scenario_txt):
 	
 # Run the experiments for the naive comparison and compares the results with the wilcoxon pairwise test 
 # the function returns the pvalue
-def execute_experiments(max_runs, instances, original_fsm, pruned_fsm, default_target_runner):
+def execute_experiments(max_runs, instances, original_fsm, pruned_fsm, default_target_runner, rseed=1):
 	instances_num = len(instances)         # get the number of instances
 	random_seeds = int(max_runs/instances_num)  # number of random seeds to generate for max_runs
 	results_original = []
 	results_pruned = []
-	random.seed(1)
+	random.seed(rseed)
 	for ins in instances:
 		for r in range(0, random_seeds):			
 			seed = str(random.randint(0,4*10^9)) #generate random seed
@@ -116,15 +134,25 @@ def execute_experiments(max_runs, instances, original_fsm, pruned_fsm, default_t
 	
 	print("Results original {0}".format(results_original))
 	print("Results pruned   {0}".format(results_pruned))
+	#Check that the results are not exactly the same
+	test=False
+	for idx,val in enumerate(results_original):
+		if(val != results_pruned[idx]):
+			test=True
+			break
+			
 	#Calculate stat test
-	print("Executing Wilcoxon test")
-	stat, p = scipy.stats.wilcoxon(results_original, results_pruned)
-	print('stat=%.3f, p=%.3f' % (stat, p))
-	if p > 0.05:
-		print('Probably the same distribution')
+	if(test):
+		print("Executing Wilcoxon test")
+		stat, p = scipy.stats.wilcoxon(results_original, results_pruned)
+		print('stat=%.3f, p=%.3f' % (stat, p))
+		if p > 0.05:
+			print('Probably the same distribution')
+		else:
+			print('Probably different distributions')
 	else:
-		print('Probably different distributions')
-	
+		print("The two FSM reported exactly the same results")
+			
 	return p
 	
 # Reads and analyzes the FSM history file 
@@ -184,6 +212,7 @@ default_target_runner = "./target-runner"
 cut_thresh = 0.0
 testPrunedFSM = False
 max_runs = 10
+randseed=1
 fsm_tokenizer.next_token() # token 0 "AutoMoDeLogAnalyzer.py"
 fsm_tokenizer.next_token() # history file
 
@@ -204,9 +233,12 @@ while(params):
 	elif(fsm_tokenizer.peek() == "--targetrunner"):
 		fsm_tokenizer.next_token()
 		default_target_runner = fsm_tokenizer.next_token()
-	elif(fsm_tokenizer.peek() == "--max_runs"):
+	elif(fsm_tokenizer.peek() == "--runs"):
 		fsm_tokenizer.next_token()
 		max_runs = fsm_tokenizer.getInt()
+	elif(fsm_tokenizer.peek() == "--rseed"):
+		fsm_tokenizer.next_token()
+		randseed = fsm_tokenizer.getInt()		
 	elif(fsm_tokenizer.peek() == "--test"):
 		fsm_tokenizer.next_token()
 		testPrunedFSM = True
@@ -283,8 +315,9 @@ if(testPrunedFSM):
 	#print(instances)	
 	# run tests with default_target_runner
 	print("Running experiments ")
-	execute_experiments(max_runs, instances, original_fsm, cfsm, default_target_runner)
+	execute_experiments(max_runs, instances, original_fsm, cfsm, default_target_runner, randseed)
 	# compare results with statistical test
-	print("Comparing results ")
+	#print("Comparing results ")
+	
 	# output
 	
