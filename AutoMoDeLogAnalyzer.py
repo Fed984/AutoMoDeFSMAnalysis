@@ -37,7 +37,7 @@ import scipy.stats
 
 # print how to use the script
 def command_usage():
-	print("Usage   : \n\t {0} historyfile_path [options] --fsm-config <finite state machine description>".format(sys.argv[0]))
+	print("Usage   : \n\t AutoMoDeLogAnalyzer historyfile_path [options] --fsm-config <finite state machine description>".format(sys.argv[0]))
 	print("Options : ")
 	print("\t --threshold VALUE")
 	print("\t\t Set the threshold used to decide wether to delete a state.")
@@ -66,13 +66,12 @@ def update_states_map(states_map, nstates, remove_state):
 	new_idx = 0
 	new_nstates = nstates-1
 	max_idx = nstates-2
-	for i in range(0,len(states_map)):					
+	for i in range(0,len(states_map)):			
 		states_map[i] = new_idx
-		if(i != remove_state and i < new_nstates):		
-			new_idx = (new_idx + 1)%max_idx	
+		if(i != remove_state and new_idx+1 < max_idx):		
+			new_idx = new_idx + 1
 			
-	return states_map
-	
+	return states_map	
 # Reads the scenario.txt file to get the training instances
 # that will be used to test the prunedFSM	
 def read_scenario_file(scenario_txt):
