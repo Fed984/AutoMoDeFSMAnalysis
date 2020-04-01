@@ -225,7 +225,7 @@ nstates = int(fsm_tokenizer.next_token())
 
 # initialize log and parse each states
 fsm_log_counter = []
-states_map = range(0,nstates-1)
+states_map = list(range(0,nstates-1))
 for idx in range(0,nstates):
 	fsm_log_counter.append(AutoMoDeStateParser.AutoMoDeFSMState(idx, fsm_tokenizer, states_map))
 	
