@@ -124,7 +124,7 @@ def execute_experiments(max_runs, instances, original_fsm, pruned_fsm, default_t
 	random.seed(rseed)
 	for ins in instances:
 		for r in range(0, random_seeds):			
-			seed = str(random.randint(0,4*10^9)) #generate random seed
+			seed = str(random.randint(0,pow(10,9))) #generate random seed
 			print("Running {0} with seed {1}".format(ins, seed))
 			ro = float(subprocess.check_output([default_target_runner,"0","0",seed,ins,original_fsm]))
 			results_original.append(ro)
