@@ -26,6 +26,21 @@
 #trainInstancesDir = "./experiments-folder" <-- directory with the instances
 #trainInstanceFile = "...." <-- file with the instance list
 
+# Creation of the Behaviour object
+#			case 0: cNewBehaviour = new AutoMoDeBehaviourExploration();
+#			case 1: cNewBehaviour = new AutoMoDeBehaviourStop();
+#			case 2: cNewBehaviour = new AutoMoDeBehaviourPhototaxis();
+#			case 3: cNewBehaviour = new AutoMoDeBehaviourAntiPhototaxis();
+#			case 4:	cNewBehaviour = new AutoMoDeBehaviourAttraction();
+#			case 5:	cNewBehaviour = new AutoMoDeBehaviourRepulsion();
+# Transition conditions
+#			case 0: cNewCondition = new AutoMoDeConditionBlackFloor();
+#			case 1: cNewCondition = new AutoMoDeConditionGrayFloor();
+#			case 2: cNewCondition = new AutoMoDeConditionWhiteFloor();
+#			case 3: cNewCondition = new AutoMoDeConditionNeighborsCount();
+#			case 4: cNewCondition = new AutoMoDeConditionInvertedNeighborsCount();
+#			case 5: cNewCondition = new AutoMoDeConditionFixedProbability();
+
 import Tokenizer		
 import re
 import sys

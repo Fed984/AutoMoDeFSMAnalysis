@@ -131,7 +131,9 @@ class AutoMoDeFSMState:
 				break
 		
 		if(oops):
-			print("Warning: state {0} has no active transitions!".format(self.id))
+			print("Warning: state {0} has no active transitions".format(self.id))
+			print("A transition will be reactivated in order to have a functioning FSM")
+			self.transition_active[0] = True
 	
 	def update_states_map(self,new_states_map):
 		self.states_mapping = new_states_map				
