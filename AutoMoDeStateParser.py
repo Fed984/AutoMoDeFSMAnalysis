@@ -68,11 +68,20 @@ class AutoMoDeFSMState:
 		state_description = ""
 		new_transation_index = 0
 		transform = False
+		trs_number = False
 		if(self.counter > 0):			
-			for par in self.state_paramas:
-				state_description += " "+par
+			for par in self.state_paramas:	
+				if(trs_number):
+					state_description += " "+str(self.active_transitions())
+					trs_number = False
+				else:
+					state_description += " "+par			
+				
 				if(par.startswith("--")):
 					state_description += str(self.id)
+					if(par.startswith("--n")):
+						trs_number = True				
+					
 			for idx,trs in enumerate(self.transition_counters):
 				if(trs > 0 and self.transition_active[idx]):
 					for trs_par in self.transition_definition[idx]:
@@ -134,6 +143,14 @@ class AutoMoDeFSMState:
 			print("Warning: state {0} has no active transitions".format(self.id))
 			print("A transition will be reactivated in order to have a functioning FSM")
 			self.transition_active[0] = True
+	
+	def active_transitions(self):
+		atrs = 0
+		for trs in self.transition_active:
+			if(trs):
+				atrs += 1
+			
+		return atrs
 	
 	def update_states_map(self,new_states_map):
 		self.states_mapping = new_states_map				
