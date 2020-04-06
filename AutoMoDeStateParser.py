@@ -30,10 +30,29 @@ class AutoMoDeFSMState:
 		self.state_paramas = parse_parameters(tokenizer) # parsing the state parameters
 		self.transition_counters = []   # counters for tracing how many times each transition is activated
 		self.transition_definition = [] # definition and parameters of each transition
+		self.transition_active = []     # A transition is active if the destination state is in the FSM
+		self.transition_destination = []# The state where the transition lands
+		self.transition_p = []          # The probability that the transition will be taken if verified
 		self.states_mapping = states_map# a list defining the id of all states
 		while(tokenizer.has_more_tokens() and re.search("--s[0-9]+", tokenizer.peek()) == None):
 			self.transition_counters.append(0)
-			self.transition_definition.append(parse_parameters(tokenizer))
+			self.transition_active.append(True)
+			transition_parameters = parse_parameters(tokenizer)
+			self.transition_definition.append(transition_parameters)
+			self.transition_destination.append(int(transition_parameters[1]))
+			for ind,param in enumerate(transition_parameters):				
+				if(param.startswith("--p")):
+					pparam = float(transition_parameters[ind+1])
+					self.transition_p.append(pparam)
+					break
+	
+	def clone(self, fsmstate_to_clone):
+		self.id = fsmstate_to_clone.id  # the state id (0,1,2...)
+		self.counter = fsmstate_to_clone.counter  # this variable counts how many times the state is active
+		self.state_paramas = fsmstate_to_clone.state_params # parsing the state parameters
+		self.transition_counters = fsmstae_to_clone.counters   # counters for tracing how many times each transition is activated
+		self.transition_definition = fsmstate_to_clone.definition # definition and parameters of each transition
+		self.states_mapping = fsmstate_to_clone.states_mapping# a list defining the id of all states
 	
 	def increase_counter_state(self):
 		self.counter += 1
@@ -55,7 +74,7 @@ class AutoMoDeFSMState:
 				if(par.startswith("--")):
 					state_description += str(self.id)
 			for idx,trs in enumerate(self.transition_counters):
-				if(trs > 0):
+				if(trs > 0 and self.transition_active[idx]):
 					for trs_par in self.transition_definition[idx]:
 						if(not(transform)):
 							state_description += " " + trs_par
@@ -89,8 +108,31 @@ class AutoMoDeFSMState:
 	
 	def set_id(self,new_id):
 		self.id = new_id
+		
+	def deactivate_transition_to_state(self, state):
+		for idx,trs in self.transition_destination:
+			if(trs == state):
+				self.transition_active[idx] = False
+	
+	def deactivate_transition_to_states(self, states):
+		#print("States to deactivate {0}".format(states))
+		#print("Active transitions {0}".format(self.transition_active))
+		#print("Transition destinations {0}".format(self.transition_destination))
+		for state in states:
+			for idx,trs in enumerate(self.transition_destination):
+				if(trs == state):
+					self.transition_active[idx] = False
+					
+		#print("Active transitions after deactivation {0}".format(self.transition_active))
+		oops = True
+		for trs in self.transition_active:
+			if(trs):
+				oops = False
+				break
+		
+		if(oops):
+			print("Warning: state {0} has no active transitions!".format(self.id))
 	
 	def update_states_map(self,new_states_map):
-		self.states_mapping = new_states_map
-				
+		self.states_mapping = new_states_map				
 		

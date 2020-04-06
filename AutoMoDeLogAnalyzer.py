@@ -55,6 +55,8 @@ def command_usage():
 	print("\t\t The script will run RUN experiments before the statistical test.\n")
 	print("\t --rseed SEED")
 	print("\t\t The random seed used to initialize the random seed generator\n")
+	print("\t --keep-transitions")
+	print("\t\t The transitions towards a removed state are kepts and rerouted\n")
 	print("\t --help")
 	print("\t\t prints this help.\n")
 	
@@ -211,6 +213,7 @@ default_scenario = "./scenario.txt"
 default_target_runner = "./target-runner"
 cut_thresh = 0.0
 testPrunedFSM = False
+deactivateTransitions = True
 max_runs = 10
 randseed=1
 fsm_tokenizer.next_token() # token 0 "AutoMoDeLogAnalyzer.py"
@@ -238,7 +241,10 @@ while(params and fsm_tokenizer.has_more_tokens()):
 		max_runs = fsm_tokenizer.getInt()
 	elif(fsm_tokenizer.peek() == "--rseed"):
 		fsm_tokenizer.next_token()
-		randseed = fsm_tokenizer.getInt()		
+		randseed = fsm_tokenizer.getInt()
+	elif(fsm_tokenizer.peek() == "--keep-transitions"):
+		fsm_tokenizer.next_token()
+		deactivateTransitions = False		
 	elif(fsm_tokenizer.peek() == "--test"):
 		fsm_tokenizer.next_token()
 		testPrunedFSM = True
@@ -291,6 +297,7 @@ print("FSM after pruning : ")
 cfsm = ""
 new_number_of_states = nstates
 current_state = 0
+removed_states = []
 #updates state ids and updates the states_map
 for idx,state in enumerate(fsm_log_counter):
 	if(state.get_counter()/float(number_of_ticks) > cut_thresh):
@@ -299,11 +306,15 @@ for idx,state in enumerate(fsm_log_counter):
 		current_state += 1				
 	else:		
 		states_map = update_states_map(states_map, new_number_of_states, state.get_id())
+		removed_states.append(state.get_id())
 		new_number_of_states -= 1
 		
 for state in fsm_log_counter:
 	if((state.get_counter()/float(number_of_ticks)) > cut_thresh):
 		state.update_states_map(states_map)
+		if(deactivateTransitions):
+			state.deactivate_transition_to_states(removed_states)
+			
 		cfsm += str(state)+" "
 	
 
