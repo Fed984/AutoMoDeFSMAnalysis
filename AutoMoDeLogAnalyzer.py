@@ -143,17 +143,25 @@ def execute_experiments(max_runs, instances, original_fsm, pruned_fsm, default_t
 	results_original = []
 	results_pruned = []
 	random.seed(rseed)
+	avg_res_original = 0.0
+	avg_res_pruned = 0.0
 	for ins in instances:
 		for r in range(0, random_seeds):			
 			seed = str(random.randint(0,pow(10,9))) #generate random seed
 			print("Running {0} with seed {1}".format(ins, seed))
 			ro = float(subprocess.check_output([default_target_runner,"0","0",seed,ins,original_fsm]))
+			avg_res_original += ro
 			results_original.append(ro)
 			rp = float(subprocess.check_output([default_target_runner,"0","0",seed,ins,pruned_fsm]))
+			avg_res_pruned += rp
 			results_pruned.append(rp)
 	
-	print("Results original : {0}".format(results_original))
-	print("Results pruned   : {0}".format(results_pruned))
+	avg_res_original = avg_res_original/max_runs
+	avg_res_pruned = avg_res_pruned/max_runs	
+	print("Results original        : {0}".format(results_original))
+	print("Average result original : {0}".format(avg_res_original))
+	print("Results pruned          : {0}".format(results_pruned))	
+	print("Average result pruned   : {0}".format(avg_res_pruned))
 	#Check that the results are not exactly the same
 	test=False
 	for idx,val in enumerate(results_original):
@@ -175,7 +183,7 @@ def execute_experiments(max_runs, instances, original_fsm, pruned_fsm, default_t
 		p=0
 		print("The two FSM reported exactly the same results")
 			
-	return p
+	return p,results_original,results_pruned
 		
 # Reads and analyzes the FSM history file 
 # returns the total number of time ticks read
