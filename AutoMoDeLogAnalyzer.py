@@ -52,6 +52,7 @@ import scipy.stats
 import AutoMoDeFSMExperiment
 import copy
 
+commandline_separator = "-------------------------------------------------------------------------------------"	
 # print how to use the script
 def command_usage():
 	print("Usage   : \n\t AutoMoDeLogAnalyzer historyfile_path [options] --fsm-config <finite state machine description>".format(sys.argv[0]))
@@ -151,8 +152,8 @@ def execute_experiments(max_runs, instances, original_fsm, pruned_fsm, default_t
 			rp = float(subprocess.check_output([default_target_runner,"0","0",seed,ins,pruned_fsm]))
 			results_pruned.append(rp)
 	
-	print("Results original {0}".format(results_original))
-	print("Results pruned   {0}".format(results_pruned))
+	print("Results original : {0}".format(results_original))
+	print("Results pruned   : {0}".format(results_pruned))
 	#Check that the results are not exactly the same
 	test=False
 	for idx,val in enumerate(results_original):
@@ -162,13 +163,14 @@ def execute_experiments(max_runs, instances, original_fsm, pruned_fsm, default_t
 			
 	#Calculate stat test
 	if(test):
-		print("Executing Wilcoxon test")
+		print("\n Executing Wilcoxon test")
+		print(commandline_separator)
 		stat, p = scipy.stats.wilcoxon(results_original, results_pruned)
 		print('stat=%.3f, p=%.3f' % (stat, p))
 		if p > 0.05:
-			print('Probably the same distribution')
+			print('There is no significant difference')
 		else:
-			print('Probably different distributions')
+			print('There is a significant difference')
 	else:
 		p=0
 		print("The two FSM reported exactly the same results")
@@ -283,6 +285,7 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 	print("number of episodes {0}".format(number_of_episodes))	
 	return number_of_ticks,number_of_episodes
 	
+
 #check that all the arguments are there	
 if(len(sys.argv) < 4):
 	command_usage()
@@ -303,13 +306,11 @@ fsm_tokenizer.next_token() # history file
 
 #Checks if a value for the threshold has been provided,
 # otherwise it uses the default one 0
-print("Configuration :")
 params=True
 while(params and fsm_tokenizer.has_more_tokens()):
 	if(fsm_tokenizer.peek() == "--threshold"):		
 		fsm_tokenizer.next_token()
-		cut_thresh = fsm_tokenizer.getFloat()
-		print("Threshold value for state pruning : {0}".format(cut_thresh))
+		cut_thresh = fsm_tokenizer.getFloat()		
 	elif(fsm_tokenizer.peek() == "--help"):
 		command_usage()
 		exit(0)
@@ -350,14 +351,18 @@ for arg in range(pos+1, len(sys.argv)):
 
 fsm_tokenizer.next_token() #this token is --nstates
 
-
-
+print("Configuration")
+print(commandline_separator)
+print("Threshold value for state pruning     : {0}".format(cut_thresh))
 if(testPrunedFSM):
-	print("Experiments will be executed to compare the pruned FSM with the orignal one")
-	print("Scenario file                     : {0}".format(default_scenario))
-	print("Target runner                     : {0}".format(default_target_runner))	
-	print("Number of tests                   : {0}".format(max_runs))
-
+	print("Evaluation of the pruned FSM          : Active")
+	print("Scenario file                         : {0}".format(default_scenario))
+	print("Target runner                         : {0}".format(default_target_runner))	
+	print("Number of tests                       : {0}".format(max_runs))
+	print("Keeping transitions to removed states : {0}".format(deactivateTransitions))
+else:
+	print("Evaluation fo the pruned FSM          : No")
+	
 nstates = int(fsm_tokenizer.next_token())
 
 # initialize log and parse each states
@@ -371,7 +376,8 @@ for idx in range(0,nstates):
 #print("FSM : \n"+str(fsm_log_counter))
 experiments = []
 number_of_ticks,number_of_episodes = analyze_logfile(history_file, fsm_log_counter, experiments)
-print("\nFSM log : ")
+print("\nFSM log ")
+print(commandline_separator)
 print("Total number of experiments : {0}".format(len(experiments)))
 print("Total number of ticks       : {0}".format(number_of_ticks))
 print("Total number of states      : {0}".format(nstates))
@@ -440,16 +446,21 @@ average_original_reward = vpi_all[0] * float(number_of_episodes/len(experiments)
 average_wei_reward = wei_is[0] * float(number_of_episodes/len(experiments))
 
 print("\n Off-policy analysis of the pruned FSM")
-print("Vpi from all the experiments                        {0}".format(vpi_all))
-print("Vpi after the removal of state with ordinary IS {0} {1}".format(removed_states, ord_is))
-print("Vpi after the removal of state with weighted IS {0} {1}".format(removed_states, wei_is))
+print(commandline_separator)
+print("State values of the original FSM                             : {0}".format(vpi_all))
+print("State values after pruning with ordinary importance sampling : {0}".format(ord_is))
+print("State values after pruning with weighted importance sampling : {0}".format(wei_is))
 #print("is ratio due to the removal of state {0} {1}".format(removed_states, is_ratio))
-print("-------------------------------------------------------------------------------------")
+
+print("\n Performance estimation")
+print(commandline_separator)
 print("Average performance of the original FSM        : {0}".format(average_original_reward))
 print("Expected average performance of the pruned FSM : {0}".format(average_wei_reward))
 
 
 if(testPrunedFSM):
+	print("\n Performance evaluation")
+	print(commandline_separator)
 	# read scenario file
 	print("Reading scenario file ")
 	instances = read_scenario_file(default_scenario)
