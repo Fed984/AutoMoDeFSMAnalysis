@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import re
 import Tokenizer
+import math
 
 # Removes the indexes from state and transition descriptions
 def strip_indexes(token):	
@@ -33,6 +34,8 @@ class AutoMoDeFSMState:
 		self.transition_active = []     # A transition is active if the destination state is in the FSM
 		self.transition_destination = []# The state where the transition lands
 		self.transition_p = []          # The probability that the transition will be taken if verified
+		self.transition_type = []
+		self.transition_w = []          
 		self.states_mapping = states_map# a list defining the id of all states
 		while(tokenizer.has_more_tokens() and re.search("--s[0-9]+", tokenizer.peek()) == None):
 			self.transition_counters.append(0)
@@ -40,11 +43,18 @@ class AutoMoDeFSMState:
 			transition_parameters = parse_parameters(tokenizer)
 			self.transition_definition.append(transition_parameters)
 			self.transition_destination.append(int(transition_parameters[1]))
+			self.transition_w.append(0)
+			#print("Transition {0} -> {1}".format(len(self.transition_counters), transition_parameters))
 			for ind,param in enumerate(transition_parameters):				
 				if(param.startswith("--p")):
 					pparam = float(transition_parameters[ind+1])
 					self.transition_p.append(pparam)
-					break
+				elif(param.startswith("--c")):
+					ttype = int(transition_parameters[ind+1])
+					self.transition_type.append(ttype)
+				elif(param.startswith("--w")):
+					wparam = float(transition_parameters[ind+1])
+					self.transition_w[-1] = wparam				
 	
 	def clone(self, fsmstate_to_clone):
 		self.id = fsmstate_to_clone.id  # the state id (0,1,2...)
@@ -124,6 +134,7 @@ class AutoMoDeFSMState:
 				self.transition_active[idx] = False
 	
 	def deactivate_transition_to_states(self, states):
+		#print("State {0}".format(self.id))
 		#print("States to deactivate {0}".format(states))
 		#print("Active transitions {0}".format(self.transition_active))
 		#print("Transition destinations {0}".format(self.transition_destination))
@@ -140,17 +151,74 @@ class AutoMoDeFSMState:
 				break
 		
 		if(oops):
-			print("Warning: state {0} has no active transitions".format(self.id))
-			print("A transition will be reactivated in order to have a functioning FSM")
+			#print("Warning: state {0} has no active transitions".format(self.id))
+			#print("A transition will be reactivated in order to have a functioning FSM")
 			self.transition_active[0] = True
 	
 	def active_transitions(self):
 		atrs = 0
-		for trs in self.transition_active:
-			if(trs):
+		for idx,trs in enumerate(self.transition_active):
+			if(trs and self.transition_counters[idx] > 0):
 				atrs += 1
 			
 		return atrs
+	
+	def num_of_transitions_to(self, state):
+		num = 0
+		smap = state
+		if(state > self.id):
+			smap = state-1
+		
+		for destination in self.transition_destination:
+			if(destination == smap):
+				num +=1
+			
+		return num
+	
+	def get_transition_probability(self, transition, correction=0):
+		type = self.transition_type[transition]
+		prob = self.transition_p[transition]
+		if type == 3 :
+			prob = 1.0/(1.0 + math.exp(self.transition_w[transition]*(prob-correction)))
+			#print("State {0} Transition {1} type 3 -> prob {2}".format(self.id, transition,prob))
+		if type == 4:
+			prob = 1.0 - 1.0/(1.0 + math.exp(self.transition_w[transition]*(prob-correction)))
+			#print("State {0} Transition {1} type 4 -> prob {2}".format(self.id, transition,prob))			
+			
+		return prob 
+	
+	def prob_of_reaching_state(self, target, states, correction=0):
+		if(self.id == target):
+			return 1.0
+			
+		num = len(self.transition_destination)#Number of transition for the state
+		smap = target 
+		prob = 0.0
+		if(target > self.id):
+			smap = target-1 #Set smap to the correct transition target for target
+		
+		prob = 0 #Start with 0 since there can be more than one transition to target
+		for idx,destination in enumerate(self.transition_destination):
+			if destination == smap : #if state has a transition to target
+				tprob = self.get_transition_probability(idx,correction)
+				prob += tprob/float(num) #Add the probability of taking that transition
+		
+		#print("State {0} probability of reaching directly state {1} : {2}".format(self.id, target, prob))
+		if prob == 0 : #There is no direct transition to target
+			for idx,destination in enumerate(self.transition_destination) :
+				if(destination >= self.id):
+					true_destination = destination+1
+				
+				nprob = states[true_destination].prob_of_reaching_state(target,states)*(self.transition_p[idx]/float(num))
+				if(nprob > prob):
+					prob = nprob
+			#print("State {0} probability of reaching indirectly state {1} : {2}".format(self.id, target, prob))
+		if prob == 0:
+			prob = 1
+			print("State {0} impossible to reach state {1} : {2}".format(self.id, target, prob))
+			
+		return prob
+						
 	
 	def update_states_map(self,new_states_map):
 		self.states_mapping = new_states_map				

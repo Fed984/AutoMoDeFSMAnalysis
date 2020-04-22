@@ -49,6 +49,8 @@ import os
 import subprocess
 import random
 import scipy.stats
+import AutoMoDeFSMExperiment
+import copy
 
 # print how to use the script
 def command_usage():
@@ -64,7 +66,7 @@ def command_usage():
 	print("\t --scenario FILE")
 	print("\t\t The script will run the experiments using the instances specified in the irace")
 	print("\t\t scenario file FILE.\n")
-	print("\t --target FILE") 
+	print("\t --targetrunner FILE") 
 	print("\t\t The script will use the target-runner FILE to run the experiments.\n")
 	print("\t --runs RUN")
 	print("\t\t The script will run RUN experiments before the statistical test.\n")
@@ -89,6 +91,7 @@ def update_states_map(states_map, nstates, remove_state):
 			new_idx = new_idx + 1
 			
 	return states_map	
+	
 # Reads the scenario.txt file to get the training instances
 # that will be used to test the prunedFSM	
 def read_scenario_file(scenario_txt):
@@ -171,50 +174,114 @@ def execute_experiments(max_runs, instances, original_fsm, pruned_fsm, default_t
 		print("The two FSM reported exactly the same results")
 			
 	return p
-	
+		
 # Reads and analyzes the FSM history file 
 # returns the total number of time ticks read
-def analyze_logfile(history_file, fsm_log_counter):
+def analyze_logfile(history_file, fsm_log_counter, experiments):
 	number_of_ticks = 0
+	number_of_episodes= 0
 	print("Opening log file...")
 	f = open(history_file,"r")
 	Lines = f.readlines();
 	print("Number of lines {0}".format(len(Lines)))
 	previous_state = 0
 	cstate = 0
-	print("Analyzing log file...")
+	print("Analyzing log file...")	
+	recording_exp = False	
+	exp_states = [0]
+	exp_transitions = [0]
+	exp_transitions_probabilities = [1]
+	exp_active_transitions = [1]
+	cscore = 0
+	r_recording = False
+	vpi_overall = [0.0 for i in range(0,len(fsm_log_counter))]
+	vpi_states = [0 for i in range(0,len(fsm_log_counter))]	
 	for line in Lines:
-		t = Tokenizer.Tokenizer(line)
-		#print(line)
-		previous_state = cstate
-		#main loop
-		while t.has_more_tokens():
-			ctoken = t.next_token()	
-			#if token is a clock tick update the clock ticks counter	
-			if(ctoken=="--t"):
-				ctick = int(t.next_token())
-				number_of_ticks += 1
-				#print("Time tick {}".format(ctick))
+		if(not(recording_exp) and line.startswith("Score ")):	# Starting of the experiment		
+					cscore = float(line.split()[1]) # Getting the score 
+					exp = AutoMoDeFSMExperiment.AutoMoDeExperiment() #Initializing the experiment object	
+					exp.set_result(cscore)
+					recording_exp = True # Activating the recording
+		elif(recording_exp and not(line.startswith("[INFO]"))):	# Parsing the experiment traces		
+			t = Tokenizer.Tokenizer(line) # splitting the traces in tokens
+			previous_state = cstate # saving the previous state
+			while t.has_more_tokens():  
+				ctoken = t.next_token()						
+				if(ctoken.startswith("--t")):   #if token is a clock tick, update the clock ticks counter
+					ctick = int(t.next_token())
+					number_of_ticks += 1
+					if(ctick == 0 and len(exp_states) > 1):	#Saving the experience for each robot
+						#print("Saving EPISODE ROBOT {0} OF EXPERIMENT {1} vpi {2} # {3}".format(number_of_robots,len(experiments),vpi_overall,len(exp_states)))
+						exp.set_startIdx(ctick)	# saving start tick (not usefull since ticks reset)
+						exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions] 
+						exp.append_logs(exp_log) # save logs of the robot
+						vpi_states = [0 for i in range(0,len(fsm_log_counter))] #reinitialize
+						exp_states = [0]                    # reinitialize
+						exp_transitions = [0]               # reinitialize
+						exp_transitions_probabilities = [1] # reinitialize
+						exp_active_transitions = [1]        # reinitialize
+				
+					if(ctick == 0): #Updating the total number of robots
+						number_of_episodes += 1
+						
+				else:
+					match = re.search("--s[0-9]+", ctoken)	
+					if(match != None):  #if token is a state description log the state execution
+						match = re.search("[0-9]+", ctoken)
+						cstate = int(match.group(0));
+						fsm_log_counter[cstate].increase_counter_state() #Updating the counter state
+						if( vpi_states[cstate] == 0): #If this state was not visited by this robot
+							vpi_states[cstate] = 1
+							vpi_overall[cstate] += 1 # update the Experiment First Visit count 
+						#print("Current State {} of type {}".format(cstate,t.next_token()))
 			
-			#if token is a state description log the state execution
-			match = re.search("--s[0-9]+", ctoken)	
-			if(match != None):
-				match = re.search("[0-9]+", ctoken)
-				cstate = int(match.group(0));
-				fsm_log_counter[cstate].increase_counter_state()		
-				#print("Current State {} of type {}".format(cstate,t.next_token()))
-			
-			#if token is a condition, log only is the condition is true
-			match = re.search("--c[0-9]+", ctoken)		
-			if(match != None):
-				match = re.search("[0-9]+", ctoken)
-				condition = int(match.group(0))
-				type = t.next_token();
-				value = int(t.next_token())
-				fsm_log_counter[previous_state].increase_counter_transition(condition)
-				#print("Condition {} of type {} has value {} belongs to state {}".format(condition,type,value,previous_state))
+					match = re.search("--c[0-9]+", ctoken)		
+					if(match != None): #if token is a condition, log only if the condition is true
+						match = re.search("[0-9]+", ctoken)
+						condition = int(match.group(0))
+						type = t.next_token(); # type of the transition
+						value = int(t.next_token()) # value (with the new code is always 1)
+						probability = float(t.next_token()) # probability that the transition was active
+						active_transitions = 1
+						if(t.peek().startswith("--a")): # if the active states log is present
+							t.next_token()
+							active_transitions = int(t.next_token()) #number of active transitions
+							
+						if(value == 1):
+							fsm_log_counter[previous_state].increase_counter_transition(condition)
+							#exp_log.append("t {0} {1} {2}".format(condition, probability, active_transitions))
+							#exp_log.append("s {0}".format(cstate))	
+							exp_states.append(cstate) #update the states log
+							exp_transitions.append(condition) #update the transitions log
+							exp_transitions_probabilities.append(probability)# probabilities
+							exp_active_transitions.append(active_transitions)# active transitions
+							#print("Condition {} of type {} has value {} belongs to state {}".format(condition,type,value,previous_state))
+		elif(recording_exp and line.startswith("[INFO]")): # Beginning of a new experiment 
+			recording_exp = False    # stop recording
+			exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions]
+			exp.append_logs(exp_log) # save experiment log
+			exp.set_vpi(vpi_overall) # save overall vpi
+			experiments.append(exp)	 # save experiment
+			exp.set_endIdx(ctick)	 # saving final time tick (not usefull since ticks reset per each robot)
+			vpi_overall = [0.0 for i in range(0,len(fsm_log_counter))] # reinitialize 				
+			vpi_states = [0 for i in range(0,len(fsm_log_counter))]    # reinitialize
+			exp_states = [0] 					   # reinitialize
+			exp_transitions = [0] 					   # reinitialize
+			exp_transitions_probabilities = [1] 			   # reinitialize
+			exp_active_transitions = [1] 				   # reinitialize			
+			cscore = 0 						   # reinitialize
+	
+	if(len(exp_states) > 0): # Save final experiment
+		exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions]
+		exp.append_logs(exp_log)  # save experiment log
+		exp.set_vpi(vpi_overall)  # save overall vpi
+		#print("Saving EPISODE ROBOT {0} OF EXPERIMENT {1}".format(number_of_robots,len(experiments)))
+		exp.set_endIdx(ctick)     # saving final time tick (not usefull since ticks reset per each robot)
+		experiments.append(exp)   # save experiment
+		
 	f.close()
-	return number_of_ticks
+	print("number of episodes {0}".format(number_of_episodes))	
+	return number_of_ticks,number_of_episodes
 	
 #check that all the arguments are there	
 if(len(sys.argv) < 4):
@@ -236,12 +303,13 @@ fsm_tokenizer.next_token() # history file
 
 #Checks if a value for the threshold has been provided,
 # otherwise it uses the default one 0
-
+print("Configuration :")
 params=True
 while(params and fsm_tokenizer.has_more_tokens()):
-	if(fsm_tokenizer.peek() == "--threshold"):
+	if(fsm_tokenizer.peek() == "--threshold"):		
 		fsm_tokenizer.next_token()
 		cut_thresh = fsm_tokenizer.getFloat()
+		print("Threshold value for state pruning : {0}".format(cut_thresh))
 	elif(fsm_tokenizer.peek() == "--help"):
 		command_usage()
 		exit(0)
@@ -281,13 +349,15 @@ for arg in range(pos+1, len(sys.argv)):
 	original_fsm += sys.argv[arg] + " "
 
 fsm_tokenizer.next_token() #this token is --nstates
+
+
+
 if(testPrunedFSM):
 	print("Experiments will be executed to compare the pruned FSM with the orignal one")
-	print("Scenario file  : {0}".format(default_scenario))
-	print("Target runner  : {0}".format(default_target_runner))	
-	print("Number of tests : {0}".format(max_runs))
+	print("Scenario file                     : {0}".format(default_scenario))
+	print("Target runner                     : {0}".format(default_target_runner))	
+	print("Number of tests                   : {0}".format(max_runs))
 
-print("Threshold value for state pruning : {0}".format(cut_thresh))
 nstates = int(fsm_tokenizer.next_token())
 
 # initialize log and parse each states
@@ -297,18 +367,24 @@ for idx in range(0,nstates):
 	fsm_log_counter.append(AutoMoDeStateParser.AutoMoDeFSMState(idx, fsm_tokenizer, states_map))
 	
 	
-print("Total number of states : {0}".format(nstates))
+
 #print("FSM : \n"+str(fsm_log_counter))
-number_of_ticks = analyze_logfile(history_file, fsm_log_counter)
-print("Total number of ticks : {0}".format(number_of_ticks))
-print("FSM log : ")
+experiments = []
+number_of_ticks,number_of_episodes = analyze_logfile(history_file, fsm_log_counter, experiments)
+print("\nFSM log : ")
+print("Total number of experiments : {0}".format(len(experiments)))
+print("Total number of ticks       : {0}".format(number_of_ticks))
+print("Total number of states      : {0}".format(nstates))
 for state in fsm_log_counter:
 	state_load = round(float(state.get_counter())/float(number_of_ticks)*100,2)
 	print("Sate {0} active for {1} ticks or {2}% ".format(state.get_id(),state.get_counter(),state_load)+str(state.get_transition_counters()))
-print("Original FSM : ")
+	
+
+
+print("\nOriginal FSM : ")
 print(original_fsm)
 
-print("FSM after pruning : ")
+print("\nPruned FSM   : ")
 cfsm = ""
 new_number_of_states = nstates
 current_state = 0
@@ -324,7 +400,9 @@ for idx,state in enumerate(fsm_log_counter):
 		removed_states.append(state.get_id())
 		new_number_of_states -= 1
 		
+or_fsm = []		
 for state in fsm_log_counter:
+	or_fsm.append(copy.copy(state))	
 	if((state.get_counter()/float(number_of_ticks)) > cut_thresh):
 		state.update_states_map(states_map)
 		if(deactivateTransitions):
@@ -335,6 +413,41 @@ for state in fsm_log_counter:
 
 cfsm = "--nstates {0}".format(new_number_of_states)+" "+cfsm
 print(cfsm)		
+
+number_of_states = len(fsm_log_counter)
+is_ratio = 0.0
+ord_is = [0.0 for i in range(0, number_of_states)]
+wei_is = [0.0 for i in range(0, number_of_states)]
+wei_is_den = [0.0 for i in range(0, number_of_states)]
+vpi_all = [0.0 for i in range(0, number_of_states)]
+for ex in experiments:
+	#print(ex)
+	is_ratio += ex.calculate_is_ratio(removed_states)
+	partial_ord_is = ex.calculate_ord_is(removed_states,or_fsm)
+	partial_wei_is,partial_wei_is_den = ex.calculate_weighted_is(removed_states, or_fsm)
+	vpi_part = ex.calculate_vpi_for_experiment()
+	ord_is = [ord_is[i]+partial_ord_is[i] for i in range(0,number_of_states)]
+	wei_is = [wei_is[i]+partial_wei_is[i] for i in range(0,number_of_states)]
+	wei_is_den = [wei_is_den[i]+partial_wei_is_den[i] for i in range(0,number_of_states)]
+	vpi_all = [vpi_all[i]+vpi_part[i] for i in range(0,number_of_states)]
+	
+is_ratio = is_ratio/float(number_of_episodes)
+ord_is = [ord_is[i]/float(number_of_episodes) for i in range(0,number_of_states)]
+vpi_all = [vpi_all[i]/float(len(experiments)) for i in range(0,number_of_states)]
+wei_is = [wei_is[i]/wei_is_den[i] for i in range(0,number_of_states)]
+
+average_original_reward = vpi_all[0] * float(number_of_episodes/len(experiments))
+average_wei_reward = wei_is[0] * float(number_of_episodes/len(experiments))
+
+print("\n Off-policy analysis of the pruned FSM")
+print("Vpi from all the experiments                        {0}".format(vpi_all))
+print("Vpi after the removal of state with ordinary IS {0} {1}".format(removed_states, ord_is))
+print("Vpi after the removal of state with weighted IS {0} {1}".format(removed_states, wei_is))
+#print("is ratio due to the removal of state {0} {1}".format(removed_states, is_ratio))
+print("-------------------------------------------------------------------------------------")
+print("Average performance of the original FSM        : {0}".format(average_original_reward))
+print("Expected average performance of the pruned FSM : {0}".format(average_wei_reward))
+
 
 if(testPrunedFSM):
 	# read scenario file
