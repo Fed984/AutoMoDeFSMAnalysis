@@ -156,8 +156,8 @@ def execute_experiments(max_runs, instances, original_fsm, pruned_fsm, default_t
 			avg_res_pruned += rp
 			results_pruned.append(rp)
 	
-	avg_res_original = avg_res_original/max_runs
-	avg_res_pruned = avg_res_pruned/max_runs	
+	avg_res_original = avg_res_original/max_runs*-1
+	avg_res_pruned = avg_res_pruned/max_runs*-1	
 	print("Results original        : {0}".format(results_original))
 	print("Average result original : {0}".format(avg_res_original))
 	print("Results pruned          : {0}".format(results_pruned))	
@@ -448,7 +448,12 @@ for ex in experiments:
 is_ratio = is_ratio/float(number_of_episodes)
 ord_is = [ord_is[i]/float(number_of_episodes) for i in range(0,number_of_states)]
 vpi_all = [vpi_all[i]/float(len(experiments)) for i in range(0,number_of_states)]
-wei_is = [wei_is[i]/wei_is_den[i] for i in range(0,number_of_states)]
+for i in range(0,number_of_states):
+	den = 1.0
+	if(wei_is_den[i] > 0):
+		den = wei_is_den[i]
+		
+	wei_is[i] = wei_is[i]/den
 
 average_original_reward = vpi_all[0] * float(number_of_episodes/len(experiments))
 average_wei_reward = wei_is[0] * float(number_of_episodes/len(experiments))
