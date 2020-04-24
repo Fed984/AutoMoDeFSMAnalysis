@@ -51,6 +51,7 @@ import random
 import scipy.stats
 import AutoMoDeFSMExperiment
 import copy
+from tqdm import tqdm
 
 commandline_separator = "-------------------------------------------------------------------------------------"	
 # print how to use the script
@@ -65,18 +66,20 @@ def command_usage():
 	print("\t\t When used the script will run RUN experiments with the original and pruned FSM.")
 	print("\t\t The results are compared using the Wilcoxon paired statistical test.\n")
 	print("\t --scenario FILE")
-	print("\t\t The script will run the experiments using the instances specified in the irace")
+	print("\t\t The script will run the experiments using the instances specified in the irace.")
 	print("\t\t scenario file FILE.\n")
 	print("\t --targetrunner FILE") 
 	print("\t\t The script will use the target-runner FILE to run the experiments.\n")
 	print("\t --runs RUN")
 	print("\t\t The script will run RUN experiments before the statistical test.\n")
 	print("\t --rseed SEED")
-	print("\t\t The random seed used to initialize the random seed generator\n")
+	print("\t\t The random seed used to initialize the random seed generator.\n")
 	print("\t --keep-transitions")
-	print("\t\t The transitions towards a removed state are kepts and rerouted\n")
+	print("\t\t The transitions towards a removed state are kepts and rerouted.\n")
+	print("\t --no-is-analysis")
+	print("\t\t The performance estimation based on importance sampling is deactivated.\n")
 	print("\t --help")
-	print("\t\t prints this help.\n")
+	print("\t\t Prints this help.\n")
 	
 	
 # the states_map represents the transition map for the states
@@ -101,8 +104,8 @@ def read_scenario_file(scenario_txt):
 	instances=[]
 	lsplit = ""
 	lines = f.readlines();
-	for line in lines:
-		if(line.startswith("trainInstancesDir")):
+	for line in lines: # Goes through the file to get the path to the instance/instances
+		if(line.startswith("trainInstancesDir")): # if the instances are in a directory
 			lsplit = line.split("=")
 			path=lsplit[1].split("\"")[1]
 			if(path.startswith(".")):
@@ -114,7 +117,7 @@ def read_scenario_file(scenario_txt):
 					instances.append(os.path.join(r, file))					
 					
 			break
-		elif(line.startswith("trainInstancesFile")):
+		elif(line.startswith("trainInstancesFile")): # if the instances are specified in a file
 			lsplit = line.split("=").split("\"")[1]
 			path = lsplit[1]
 			if(path.startswith(".")):
@@ -190,13 +193,14 @@ def execute_experiments(max_runs, instances, original_fsm, pruned_fsm, default_t
 def analyze_logfile(history_file, fsm_log_counter, experiments):
 	number_of_ticks = 0
 	number_of_episodes= 0
-	print("Opening log file...")
+	print("\n Opening log file")
+	print(commandline_separator)
 	f = open(history_file,"r")
 	Lines = f.readlines();
-	print("Number of lines {0}".format(len(Lines)))
+	print("Number of lines      : {0}".format(len(Lines)))
 	previous_state = 0
 	cstate = 0
-	print("Analyzing log file...")	
+	print("Analyzing log file   :")	
 	recording_exp = False	
 	exp_states = [0]
 	exp_transitions = [0]
@@ -206,13 +210,13 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 	r_recording = False
 	vpi_overall = [0.0 for i in range(0,len(fsm_log_counter))]
 	vpi_states = [0 for i in range(0,len(fsm_log_counter))]	
-	for line in Lines:
-		if(not(recording_exp) and line.startswith("Score ")):	# Starting of the experiment		
-					cscore = float(line.split()[1]) # Getting the score 
+	for line in tqdm(Lines):
+		if(not(recording_exp) and line.startswith("Score ")):	  # Starting of the experiment		
+					cscore = float(line.split()[1])   # Getting the score 
 					exp = AutoMoDeFSMExperiment.AutoMoDeExperiment() #Initializing the experiment object	
 					exp.set_result(cscore)
-					recording_exp = True # Activating the recording
-		elif(recording_exp and not(line.startswith("[INFO]"))):	# Parsing the experiment traces		
+					recording_exp = True              # Activating the recording
+		elif(recording_exp and not(line.startswith("[INFO]"))):	  # if reading the experiment traces		
 			t = Tokenizer.Tokenizer(line) # splitting the traces in tokens
 			previous_state = cstate # saving the previous state
 			while t.has_more_tokens():  
@@ -257,10 +261,8 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 							t.next_token()
 							active_transitions = int(t.next_token()) #number of active transitions
 							
-						if(value == 1):
+						if(value == 1): #if the condition is true
 							fsm_log_counter[previous_state].increase_counter_transition(condition)
-							#exp_log.append("t {0} {1} {2}".format(condition, probability, active_transitions))
-							#exp_log.append("s {0}".format(cstate))	
 							exp_states.append(cstate) #update the states log
 							exp_transitions.append(condition) #update the transitions log
 							exp_transitions_probabilities.append(probability)# probabilities
@@ -281,7 +283,7 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 			exp_active_transitions = [1] 				   # reinitialize			
 			cscore = 0 						   # reinitialize
 	
-	if(len(exp_states) > 0): # Save final experiment
+	if(len(exp_states) > 0): # Save the final experiment
 		exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions]
 		exp.append_logs(exp_log)  # save experiment log
 		exp.set_vpi(vpi_overall)  # save overall vpi
@@ -309,6 +311,7 @@ testPrunedFSM = False
 deactivateTransitions = True
 max_runs = 10
 randseed=1
+is_active = True
 fsm_tokenizer.next_token() # token 0 "AutoMoDeLogAnalyzer.py"
 fsm_tokenizer.next_token() # history file
 
@@ -342,6 +345,9 @@ while(params and fsm_tokenizer.has_more_tokens()):
 		testPrunedFSM = True
 	elif(fsm_tokenizer.peek() == "--fsm-config"):
 		params=False
+	elif(fsm_tokenizer.peek() == "--no-is-analysis"):
+		fsm_tokenizer.next_token()
+		is_active = False
 	else:
 		fsm_tokenizer.next_token()
 
@@ -359,17 +365,19 @@ for arg in range(pos+1, len(sys.argv)):
 
 fsm_tokenizer.next_token() #this token is --nstates
 
-print("Configuration")
+print(" Configuration")
 print(commandline_separator)
-print("Threshold value for state pruning     : {0}".format(cut_thresh))
+print("Threshold value for state pruning        : {0}".format(cut_thresh))
+print("Keeping transitions to removed states    : {0}".format(deactivateTransitions))
+print("Performance estimation of the pruned FSM : {0}".format(is_active))
 if(testPrunedFSM):
-	print("Evaluation of the pruned FSM          : Active")
-	print("Scenario file                         : {0}".format(default_scenario))
-	print("Target runner                         : {0}".format(default_target_runner))	
-	print("Number of tests                       : {0}".format(max_runs))
-	print("Keeping transitions to removed states : {0}".format(deactivateTransitions))
+	print("Evaluation of the pruned FSM             : Active")
+	print("Scenario file                            : {0}".format(default_scenario))
+	print("Target runner                            : {0}".format(default_target_runner))	
+	print("Number of tests                          : {0}".format(max_runs))	
+	print("Random seed                              : {0}".format(randseed))
 else:
-	print("Evaluation fo the pruned FSM          : No")
+	print("Evaluation of the pruned FSM             : No")
 	
 nstates = int(fsm_tokenizer.next_token())
 
@@ -428,47 +436,48 @@ for state in fsm_log_counter:
 cfsm = "--nstates {0}".format(new_number_of_states)+" "+cfsm
 print(cfsm)		
 
-number_of_states = len(fsm_log_counter)
-is_ratio = 0.0
-ord_is = [0.0 for i in range(0, number_of_states)]
-wei_is = [0.0 for i in range(0, number_of_states)]
-wei_is_den = [0.0 for i in range(0, number_of_states)]
-vpi_all = [0.0 for i in range(0, number_of_states)]
-for ex in experiments:
-	#print(ex)
-	is_ratio += ex.calculate_is_ratio(removed_states)
-	partial_ord_is = ex.calculate_ord_is(removed_states,or_fsm)
-	partial_wei_is,partial_wei_is_den = ex.calculate_weighted_is(removed_states, or_fsm)
-	vpi_part = ex.calculate_vpi_for_experiment()
-	ord_is = [ord_is[i]+partial_ord_is[i] for i in range(0,number_of_states)]
-	wei_is = [wei_is[i]+partial_wei_is[i] for i in range(0,number_of_states)]
-	wei_is_den = [wei_is_den[i]+partial_wei_is_den[i] for i in range(0,number_of_states)]
-	vpi_all = [vpi_all[i]+vpi_part[i] for i in range(0,number_of_states)]
-	
-is_ratio = is_ratio/float(number_of_episodes)
-ord_is = [ord_is[i]/float(number_of_episodes) for i in range(0,number_of_states)]
-vpi_all = [vpi_all[i]/float(len(experiments)) for i in range(0,number_of_states)]
-for i in range(0,number_of_states):
-	den = 1.0
-	if(wei_is_den[i] > 0):
-		den = wei_is_den[i]
+if(is_active and len(removed_states) > 0 ):
+	number_of_states = len(fsm_log_counter)
+	is_ratio = 0.0
+	ord_is = [0.0 for i in range(0, number_of_states)]
+	wei_is = [0.0 for i in range(0, number_of_states)]
+	wei_is_den = [0.0 for i in range(0, number_of_states)]
+	vpi_all = [0.0 for i in range(0, number_of_states)]
+	for ex in experiments:
+		#print(ex)
+		is_ratio += ex.calculate_is_ratio(removed_states)
+		partial_ord_is = ex.calculate_ord_is(removed_states,or_fsm)
+		partial_wei_is,partial_wei_is_den = ex.calculate_weighted_is(removed_states, or_fsm)
+		vpi_part = ex.calculate_vpi_for_experiment()
+		ord_is = [ord_is[i]+partial_ord_is[i] for i in range(0,number_of_states)]
+		wei_is = [wei_is[i]+partial_wei_is[i] for i in range(0,number_of_states)]
+		wei_is_den = [wei_is_den[i]+partial_wei_is_den[i] for i in range(0,number_of_states)]
+		vpi_all = [vpi_all[i]+vpi_part[i] for i in range(0,number_of_states)]
 		
-	wei_is[i] = wei_is[i]/den
+	is_ratio = is_ratio/float(number_of_episodes)
+	ord_is = [ord_is[i]/float(number_of_episodes) for i in range(0,number_of_states)]
+	vpi_all = [vpi_all[i]/float(len(experiments)) for i in range(0,number_of_states)]
+	for i in range(0,number_of_states):
+		den = 1.0
+		if(wei_is_den[i] > 0):
+			den = wei_is_den[i]
+			
+		wei_is[i] = wei_is[i]/den
 
-average_original_reward = vpi_all[0] * float(number_of_episodes/len(experiments))
-average_wei_reward = wei_is[0] * float(number_of_episodes/len(experiments))
+	average_original_reward = vpi_all[0] * float(number_of_episodes/len(experiments))
+	average_wei_reward = wei_is[0] * float(number_of_episodes/len(experiments))
 
-print("\n Off-policy analysis of the pruned FSM")
-print(commandline_separator)
-print("State values of the original FSM                             : {0}".format(vpi_all))
-print("State values after pruning with ordinary importance sampling : {0}".format(ord_is))
-print("State values after pruning with weighted importance sampling : {0}".format(wei_is))
-#print("is ratio due to the removal of state {0} {1}".format(removed_states, is_ratio))
+	print("\n Off-policy analysis of the pruned FSM")
+	print(commandline_separator)
+	print("State values of the original FSM                             : {0}".format(vpi_all))
+	print("State values after pruning with ordinary importance sampling : {0}".format(ord_is))
+	print("State values after pruning with weighted importance sampling : {0}".format(wei_is))
+	#print("is ratio due to the removal of state {0} {1}".format(removed_states, is_ratio))
 
-print("\n Performance estimation")
-print(commandline_separator)
-print("Average performance of the original FSM        : {0}".format(average_original_reward))
-print("Expected average performance of the pruned FSM : {0}".format(average_wei_reward))
+	print("\n Performance estimation")
+	print(commandline_separator)
+	print("Average performance of the original FSM        : {0}".format(average_original_reward))
+	print("Expected average performance of the pruned FSM : {0}".format(average_wei_reward))
 
 
 if(testPrunedFSM):
