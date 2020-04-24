@@ -193,6 +193,7 @@ def execute_experiments(max_runs, instances, original_fsm, pruned_fsm, default_t
 def analyze_logfile(history_file, fsm_log_counter, experiments):
 	number_of_ticks = 0
 	number_of_episodes= 0
+	number_of_states = len(fsm_log_counter)
 	print("\n Opening log file")
 	print(commandline_separator)
 	f = open(history_file,"r")
@@ -200,7 +201,7 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 	print("Number of lines      : {0}".format(len(Lines)))
 	previous_state = 0
 	cstate = 0
-	print("Analyzing log file   :")	
+	#print("Analyzing log file   :")	
 	recording_exp = False	
 	exp_states = [0]
 	exp_transitions = [0]
@@ -208,9 +209,9 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 	exp_active_transitions = [1]
 	cscore = 0
 	r_recording = False
-	vpi_overall = [0.0 for i in range(0,len(fsm_log_counter))]
-	vpi_states = [0 for i in range(0,len(fsm_log_counter))]	
-	for line in tqdm(Lines):
+	vpi_overall = [0.0 for i in range(0,number_of_states)]
+	vpi_states = [0 for i in range(0,number_of_states)]	
+	for line in tqdm(Lines,desc="Analyzing log file   "):
 		if(not(recording_exp) and line.startswith("Score ")):	  # Starting of the experiment		
 					cscore = float(line.split()[1])   # Getting the score 
 					exp = AutoMoDeFSMExperiment.AutoMoDeExperiment() #Initializing the experiment object	
@@ -229,7 +230,7 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 						exp.set_startIdx(ctick)	# saving start tick (not usefull since ticks reset)
 						exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions] 
 						exp.append_logs(exp_log) # save logs of the robot
-						vpi_states = [0 for i in range(0,len(fsm_log_counter))] #reinitialize
+						vpi_states = [0 for i in range(0,number_of_states)] #reinitialize
 						exp_states = [0]                    # reinitialize
 						exp_transitions = [0]               # reinitialize
 						exp_transitions_probabilities = [1] # reinitialize
@@ -275,8 +276,8 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 			exp.set_vpi(vpi_overall) # save overall vpi
 			experiments.append(exp)	 # save experiment
 			exp.set_endIdx(ctick)	 # saving final time tick (not usefull since ticks reset per each robot)
-			vpi_overall = [0.0 for i in range(0,len(fsm_log_counter))] # reinitialize 				
-			vpi_states = [0 for i in range(0,len(fsm_log_counter))]    # reinitialize
+			vpi_overall = [0.0 for i in range(0,number_of_states)] # reinitialize 				
+			vpi_states = [0 for i in range(0,number_of_states)]    # reinitialize
 			exp_states = [0] 					   # reinitialize
 			exp_transitions = [0] 					   # reinitialize
 			exp_transitions_probabilities = [1] 			   # reinitialize
@@ -292,7 +293,7 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 		experiments.append(exp)   # save experiment
 		
 	f.close()
-	print("number of episodes {0}".format(number_of_episodes))	
+	print("Number of episodes   : {0}".format(number_of_episodes))	
 	return number_of_ticks,number_of_episodes
 	
 
@@ -300,6 +301,7 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 if(len(sys.argv) < 4):
 	command_usage()
 	raise(SyntaxError("Insert all the required parameters"))
+	params = False
 
 history_file = sys.argv[1]
 # initialize tokenizer to read the FSM description
