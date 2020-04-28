@@ -207,9 +207,12 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 	exp_transitions = [0]
 	exp_transitions_probabilities = [1]
 	exp_active_transitions = [1]
+	exp_state_contribution = [0 for i in range(0,number_of_states)]
+	exp_neighbors = [0]
 	cscore = 0
 	r_recording = False
 	vpi_overall = [0.0 for i in range(0,number_of_states)]
+	#state_contribution = [0.0 for i in range(0,number_of_states)]
 	vpi_states = [0 for i in range(0,number_of_states)]	
 	for line in tqdm(Lines,desc="Analyzing log file   "):
 		if(not(recording_exp) and line.startswith("Score ")):	  # Starting of the experiment		
@@ -228,14 +231,14 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 					if(ctick == 0 and len(exp_states) > 1):	#Saving the experience for each robot
 						#print("Saving EPISODE ROBOT {0} OF EXPERIMENT {1} vpi {2} # {3}".format(number_of_robots,len(experiments),vpi_overall,len(exp_states)))
 						exp.set_startIdx(ctick)	# saving start tick (not usefull since ticks reset)
-						exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions] 
+						exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions,exp_state_contribution] 
 						exp.append_logs(exp_log) # save logs of the robot
 						vpi_states = [0 for i in range(0,number_of_states)] #reinitialize
 						exp_states = [0]                    # reinitialize
 						exp_transitions = [0]               # reinitialize
 						exp_transitions_probabilities = [1] # reinitialize
 						exp_active_transitions = [1]        # reinitialize
-				
+						exp_state_contribution = [0 for i in range(0,number_of_states)]
 					if(ctick == 0): #Updating the total number of robots
 						number_of_episodes += 1
 						
@@ -245,6 +248,7 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 						match = re.search("[0-9]+", ctoken)
 						cstate = int(match.group(0));
 						fsm_log_counter[cstate].increase_counter_state() #Updating the counter state
+						exp_state_contribution[cstate] += 1
 						if( vpi_states[cstate] == 0): #If this state was not visited by this robot
 							vpi_states[cstate] = 1
 							vpi_overall[cstate] += 1 # update the Experiment First Visit count 
@@ -258,26 +262,31 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 						value = int(t.next_token()) # value (with the new code is always 1)
 						probability = float(t.next_token()) # probability that the transition was active
 						active_transitions = 1
+						neighbors = 0
 						if(t.peek().startswith("--a")): # if the active states log is present
 							t.next_token()
 							active_transitions = int(t.next_token()) #number of active transitions
-							
+						if(t.peek().startswith("--n")): # if the number of neighbors is logged
+							t.next_token()
+							neighbors = int(t.next_token())
 						if(value == 1): #if the condition is true
 							fsm_log_counter[previous_state].increase_counter_transition(condition)
 							exp_states.append(cstate) #update the states log
 							exp_transitions.append(condition) #update the transitions log
 							exp_transitions_probabilities.append(probability)# probabilities
 							exp_active_transitions.append(active_transitions)# active transitions
+							exp_neighbors.append(neighbors)
 							#print("Condition {} of type {} has value {} belongs to state {}".format(condition,type,value,previous_state))
 		elif(recording_exp and line.startswith("[INFO]")): # Beginning of a new experiment 
 			recording_exp = False    # stop recording
-			exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions]
+			exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions, exp_state_contribution]
 			exp.append_logs(exp_log) # save experiment log
 			exp.set_vpi(vpi_overall) # save overall vpi
 			experiments.append(exp)	 # save experiment
 			exp.set_endIdx(ctick)	 # saving final time tick (not usefull since ticks reset per each robot)
 			vpi_overall = [0.0 for i in range(0,number_of_states)] # reinitialize 				
 			vpi_states = [0 for i in range(0,number_of_states)]    # reinitialize
+			exp_state_contribution = [0 for i in range(0,number_of_states)]
 			exp_states = [0] 					   # reinitialize
 			exp_transitions = [0] 					   # reinitialize
 			exp_transitions_probabilities = [1] 			   # reinitialize
@@ -285,7 +294,7 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 			cscore = 0 						   # reinitialize
 	
 	if(len(exp_states) > 0): # Save the final experiment
-		exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions]
+		exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions, exp_state_contribution]
 		exp.append_logs(exp_log)  # save experiment log
 		exp.set_vpi(vpi_overall)  # save overall vpi
 		#print("Saving EPISODE ROBOT {0} OF EXPERIMENT {1}".format(number_of_robots,len(experiments)))
@@ -369,17 +378,17 @@ fsm_tokenizer.next_token() #this token is --nstates
 
 print(" Configuration")
 print(commandline_separator)
-print("Threshold value for state pruning        : {0}".format(cut_thresh))
-print("Keeping transitions to removed states    : {0}".format(deactivateTransitions))
-print("Performance estimation of the pruned FSM : {0}".format(is_active))
+print("Threshold value for state pruning          : {0}".format(cut_thresh))
+print("Deactivating transitions to removed states : {0}".format(deactivateTransitions))
+print("Performance estimation of the pruned FSM   : {0}".format(is_active))
 if(testPrunedFSM):
-	print("Evaluation of the pruned FSM             : Active")
-	print("Scenario file                            : {0}".format(default_scenario))
-	print("Target runner                            : {0}".format(default_target_runner))	
-	print("Number of tests                          : {0}".format(max_runs))	
-	print("Random seed                              : {0}".format(randseed))
+	print("Evaluation of the pruned FSM               : Active")
+	print("Scenario file                              : {0}".format(default_scenario))
+	print("Target runner                              : {0}".format(default_target_runner))	
+	print("Number of tests                            : {0}".format(max_runs))	
+	print("Random seed                                : {0}".format(randseed))
 else:
-	print("Evaluation of the pruned FSM             : No")
+	print("Evaluation of the pruned FSM               : No")
 	
 nstates = int(fsm_tokenizer.next_token())
 
@@ -445,35 +454,50 @@ if(is_active and len(removed_states) > 0 ):
 	wei_is = [0.0 for i in range(0, number_of_states)]
 	wei_is_den = [0.0 for i in range(0, number_of_states)]
 	vpi_all = [0.0 for i in range(0, number_of_states)]
+	vpi_proportional = [0.0 for i in range(0, number_of_states)]
+	wei_is_proportional = [0.0 for i in range(0, number_of_states)]
+	wei_is_den_proportional = [0.0 for i in range(0, number_of_states)]
 	for ex in experiments:
-		#print(ex)
+		#print(ex.logs[1][4])
 		is_ratio += ex.calculate_is_ratio(removed_states)
 		partial_ord_is = ex.calculate_ord_is(removed_states,or_fsm)
 		partial_wei_is,partial_wei_is_den = ex.calculate_weighted_is(removed_states, or_fsm)
+		partial_p_wei_is,partial_p_wei_is_den = ex.calculate_proportional_weighted_is(removed_states, or_fsm)
 		vpi_part = ex.calculate_vpi_for_experiment()
+		vpi_prop = ex.calculate_proportional_vpi_for_experiment()
 		ord_is = [ord_is[i]+partial_ord_is[i] for i in range(0,number_of_states)]
 		wei_is = [wei_is[i]+partial_wei_is[i] for i in range(0,number_of_states)]
 		wei_is_den = [wei_is_den[i]+partial_wei_is_den[i] for i in range(0,number_of_states)]
 		vpi_all = [vpi_all[i]+vpi_part[i] for i in range(0,number_of_states)]
+		vpi_proportional = [vpi_proportional[i]+vpi_prop[i] for i in range(0,number_of_states)]
+		wei_is_proportional = [wei_is_proportional[i]+partial_p_wei_is[i] for i in range(0,number_of_states)]
+		wei_is_den_proportional = [wei_is_den_proportional[i]+partial_p_wei_is_den[i] for i in range(0,number_of_states)]
 		
 	is_ratio = is_ratio/float(number_of_episodes)
 	ord_is = [ord_is[i]/float(number_of_episodes) for i in range(0,number_of_states)]
 	vpi_all = [vpi_all[i]/float(len(experiments)) for i in range(0,number_of_states)]
+	vpi_proportional = [vpi_proportional[i]/float(number_of_episodes) for i in range(0,number_of_states)]
 	for i in range(0,number_of_states):
-		den = 1.0
-		if(wei_is_den[i] > 0):
-			den = wei_is_den[i]
+		den = wei_is_den[i]
+		den2 = wei_is_den_proportional[i]
+		if( den == 0):
+			den = 1.0
 			
 		wei_is[i] = wei_is[i]/den
+		if( den2 == 0 ):
+			den2 = 1.0
+		wei_is_proportional[i] = wei_is_proportional[i]/den
 
 	average_original_reward = vpi_all[0] * float(number_of_episodes/len(experiments))
 	average_wei_reward = wei_is[0] * float(number_of_episodes/len(experiments))
 
 	print("\n Off-policy analysis of the pruned FSM")
 	print(commandline_separator)
-	print("State values of the original FSM                             : {0}".format(vpi_all))
+	print("State values of the original FSM                             : {0}".format(vpi_all))	
 	print("State values after pruning with ordinary importance sampling : {0}".format(ord_is))
 	print("State values after pruning with weighted importance sampling : {0}".format(wei_is))
+	print("State values using proportional reward calculation           : {0}".format(vpi_proportional))
+	print("State values after pruning with weighted importance sampling : {0}".format(wei_is_proportional))
 	#print("is ratio due to the removal of state {0} {1}".format(removed_states, is_ratio))
 
 	print("\n Performance estimation")
