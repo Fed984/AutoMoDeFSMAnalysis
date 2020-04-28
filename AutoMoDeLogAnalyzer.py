@@ -231,13 +231,14 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 					if(ctick == 0 and len(exp_states) > 1):	#Saving the experience for each robot
 						#print("Saving EPISODE ROBOT {0} OF EXPERIMENT {1} vpi {2} # {3}".format(number_of_robots,len(experiments),vpi_overall,len(exp_states)))
 						exp.set_startIdx(ctick)	# saving start tick (not usefull since ticks reset)
-						exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions,exp_state_contribution] 
+						exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions,exp_state_contribution,exp_neighbors]
 						exp.append_logs(exp_log) # save logs of the robot
 						vpi_states = [0 for i in range(0,number_of_states)] #reinitialize
 						exp_states = [0]                    # reinitialize
 						exp_transitions = [0]               # reinitialize
 						exp_transitions_probabilities = [1] # reinitialize
 						exp_active_transitions = [1]        # reinitialize
+						exp_neighbors = [0]                 # reinitialize
 						exp_state_contribution = [0 for i in range(0,number_of_states)]
 					if(ctick == 0): #Updating the total number of robots
 						number_of_episodes += 1
@@ -279,7 +280,7 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 							#print("Condition {} of type {} has value {} belongs to state {}".format(condition,type,value,previous_state))
 		elif(recording_exp and line.startswith("[INFO]")): # Beginning of a new experiment 
 			recording_exp = False    # stop recording
-			exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions, exp_state_contribution]
+			exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions, exp_state_contribution,exp_neighbors]
 			exp.append_logs(exp_log) # save experiment log
 			exp.set_vpi(vpi_overall) # save overall vpi
 			experiments.append(exp)	 # save experiment
@@ -290,11 +291,12 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 			exp_states = [0] 					   # reinitialize
 			exp_transitions = [0] 					   # reinitialize
 			exp_transitions_probabilities = [1] 			   # reinitialize
-			exp_active_transitions = [1] 				   # reinitialize			
+			exp_active_transitions = [1] 				   # reinitialize	
+			exp_neighbors = [0]
 			cscore = 0 						   # reinitialize
 	
 	if(len(exp_states) > 0): # Save the final experiment
-		exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions, exp_state_contribution]
+		exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions, exp_state_contribution,exp_neighbors]
 		exp.append_logs(exp_log)  # save experiment log
 		exp.set_vpi(vpi_overall)  # save overall vpi
 		#print("Saving EPISODE ROBOT {0} OF EXPERIMENT {1}".format(number_of_robots,len(experiments)))

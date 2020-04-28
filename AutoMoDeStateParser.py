@@ -175,19 +175,19 @@ class AutoMoDeFSMState:
 			
 		return num
 	
-	def get_transition_probability(self, transition, correction=0):
+	def get_transition_probability(self, transition, num_neighbors=0):
 		type = self.transition_type[transition]
 		prob = self.transition_p[transition]
 		if type == 3 :
-			prob = 1.0/(1.0 + math.exp(self.transition_w[transition]*(prob-correction)))
+			prob = 1.0/(1.0 + math.exp(self.transition_w[transition]*(prob-num_neighbors)))
 			#print("State {0} Transition {1} type 3 -> prob {2}".format(self.id, transition,prob))
 		if type == 4:
-			prob = 1.0 - 1.0/(1.0 + math.exp(self.transition_w[transition]*(prob-correction)))
+			prob = 1.0 - 1.0/(1.0 + math.exp(self.transition_w[transition]*(prob-num_neighbors)))
 			#print("State {0} Transition {1} type 4 -> prob {2}".format(self.id, transition,prob))			
 			
 		return prob 
 	
-	def prob_of_reaching_state(self, target, states, correction=0):
+	def prob_of_reaching_state(self, target, states, num_neighbors=0):
 		if(self.id == target):
 			return 1.0
 			
@@ -200,7 +200,7 @@ class AutoMoDeFSMState:
 		prob = 0 #Start with 0 since there can be more than one transition to target
 		for idx,destination in enumerate(self.transition_destination):
 			if destination == smap : #if state has a transition to target
-				tprob = self.get_transition_probability(idx,correction)
+				tprob = self.get_transition_probability(idx,num_neighbors)
 				prob += tprob/float(num) #Add the probability of taking that transition
 		
 		#print("State {0} probability of reaching directly state {1} : {2}".format(self.id, target, prob))
@@ -209,7 +209,7 @@ class AutoMoDeFSMState:
 				if(destination >= self.id):
 					true_destination = destination+1
 				
-				nprob = states[true_destination].prob_of_reaching_state(target,states)*(self.transition_p[idx]/float(num))
+				nprob = states[true_destination].prob_of_reaching_state(target,states,num_neighbors)*(self.transition_p[idx]/float(num))
 				if(nprob > prob):
 					prob = nprob
 			#print("State {0} probability of reaching indirectly state {1} : {2}".format(self.id, target, prob))

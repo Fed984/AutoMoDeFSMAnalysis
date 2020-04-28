@@ -158,7 +158,7 @@ class AutoMoDeExperiment:
 							next_prob_b = float(tr_prob[state_a]/tr_actives[state_a]) 
 							if(idx > 0):
 								state_b = episode[0][idx-1] # previous state
-								next_prob_new = new_fsm[state_b].prob_of_reaching_state(state_a, new_fsm) # probability that the target policy transitions from the previous state to the next state			
+								next_prob_new = new_fsm[state_b].prob_of_reaching_state(state_a, new_fsm,episode[5][idx]) # probability that the target policy transitions from the previous state to the next state			
 						current_prob_b = float(tr_prob[idx]/tr_actives[idx]) # probability of the transition from the previous state to state
 						in_episode *=  current_prob_b * next_prob_b # combine the two
 						in_episode_pi *= next_prob_new # compounds the probabilities
