@@ -494,7 +494,7 @@ if(is_active and len(removed_states) > 0 ):
 	
 	for s in range(0,number_of_states):
 		if(wei_is[s] != 0):
-			average_wei_reward = wei_is[0] * float(number_of_episodes/len(experiments))
+			average_wei_reward = wei_is[s] * float(number_of_episodes/len(experiments))
 			break
 
 	print("\n Off-policy analysis of the pruned FSM")
