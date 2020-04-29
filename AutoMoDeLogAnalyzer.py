@@ -418,8 +418,6 @@ for state in fsm_log_counter:
 
 print("\nOriginal FSM : ")
 print(original_fsm)
-
-print("\nPruned FSM   : ")
 cfsm = ""
 new_number_of_states = nstates
 current_state = 0
@@ -447,6 +445,7 @@ for state in fsm_log_counter:
 	
 
 cfsm = "--nstates {0}".format(new_number_of_states)+" "+cfsm
+print("\nPruned FSM      : ")
 print(cfsm)		
 
 if(is_active and len(removed_states) > 0 ):
@@ -498,18 +497,19 @@ if(is_active and len(removed_states) > 0 ):
 			break
 
 	print("\n Off-policy analysis of the pruned FSM")
-	print(commandline_separator)
-	print("State values of the original FSM                             : {0}".format(vpi_all))	
-	print("State values after pruning with ordinary importance sampling : {0}".format(ord_is))
-	print("State values after pruning with weighted importance sampling : {0}".format(wei_is))
-	print("State values using proportional reward calculation           : {0}".format(vpi_proportional))
-	print("State values after pruning with weighted importance sampling : {0}".format(wei_is_proportional))
+	print(commandline_separator)	
+	print("State values of the original FSM                             : {0}".format([round(i,4) for i in vpi_all]))	
+	print("States removed by pruning                                    : {0}".format(removed_states))
+	print("State values after pruning with ordinary importance sampling : {0}".format([round(i,4) for i in ord_is]))
+	print("State values after pruning with weighted importance sampling : {0}".format([round(i,4) for i in wei_is]))
+	print("State values using proportional reward calculation           : {0}".format([round(i,4) for i in vpi_proportional]))
+	print("State values after pruning with weighted importance sampling : {0}".format([round(i,4) for i in wei_is_proportional]))
 	#print("is ratio due to the removal of state {0} {1}".format(removed_states, is_ratio))
 
 	print("\n Performance estimation")
 	print(commandline_separator)
-	print("Average performance of the original FSM        : {0}".format(average_original_reward))
-	print("Expected average performance of the pruned FSM : {0}".format(average_wei_reward))
+	print("Average performance of the original FSM        : {0}".format(round(average_original_reward,3)))
+	print("Expected average performance of the pruned FSM : {0}".format(round(average_wei_reward,3)))
 
 
 if(testPrunedFSM):
