@@ -178,7 +178,7 @@ def execute_experiments(max_runs, instances, original_fsm, pruned_fsm, default_t
 		print(commandline_separator)
 		stat, p = scipy.stats.wilcoxon(results_original, results_pruned)
 		print('stat=%.3f, p=%.3f' % (stat, p))
-		if p > 0.05:
+		if p < 0.05:
 			print('There is no significant difference')
 		else:
 			print('There is a significant difference')
