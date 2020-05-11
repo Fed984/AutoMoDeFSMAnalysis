@@ -427,7 +427,13 @@ def evaluate_all_states(or_fsm, number_of_episodes, experiments):
 	for state in or_fsm:
 		print("Evaluating effectiveness of the FSM without state : {0}".format(state.id))
 		evaluate_state_removal(or_fsm, state.id, number_of_episodes, experiments)
-		print("\n")				
+		print("\n")		
+
+def bool_to_string(bool_option):
+	if(bool_option):
+		return "Active"
+	else:
+		return "No"		
 
 #check that all the arguments are there	
 if(len(sys.argv) < 1):
@@ -446,7 +452,7 @@ deactivateTransitions = True
 all_state_analysis = False
 max_runs = 10
 randseed=1
-is_active = True
+is_active = False
 pruning = False
 fsm_tokenizer.next_token() # token 0 "AutoMoDeLogAnalyzer.py"
 fsm_tokenizer.next_token() # history file
@@ -498,32 +504,39 @@ while(params and fsm_tokenizer.has_more_tokens()):
 # move the current token to the start of the FSM
 pos = fsm_tokenizer.seek("--fsm-config")
 # if the FSM description is not found
+original_fsm = ""
+original_fsm_list = []
 if(pos<0):
 	f = open(history_file,"r")
-	fsm_tokenizer = Tokenizer.Tokenizer(f.readline)
+	fline = f.readline()
+	fsm_tokenizer = Tokenizer.Tokenizer(fline)
 	f.close()
 	pos = fsm_tokenizer.seek("--fsm-config")
 	if(pos < 0):
 		command_usage()
 		raise(SyntaxError("Finite state machine description not found"))
 	else:
-		print("\n Reading the FSM configuration from the log file.")
+		print("\n Reading the FSM configuration from the log file.")	
+		original_fsm_list = fsm_tokenizer.tokens	
+		pos += 1
 		fsm_tokenizer.next_token() #needed because when added to the log file the FSM description has also the configuration number
+else:
+	original_fsm_list = sys.argv
+	
+for arg in range(pos+1, len(original_fsm_list)):
+	original_fsm += original_fsm_list[arg] + " "
 	
 fsm_tokenizer.next_token() #this token is --fsm-config
-original_fsm = ""
-for arg in range(pos+1, len(sys.argv)):
-	original_fsm += sys.argv[arg] + " "
-
 fsm_tokenizer.next_token() #this token is --nstates
 
 print(" Configuration")
 print(commandline_separator)
 print("Threshold value for state pruning          : {0}".format(cut_thresh))
-print("Deactivating transitions to removed states : {0}".format(deactivateTransitions))
-print("Performance estimation of the pruned FSM   : {0}".format(is_active))
-print("Analysis of the contribution of all states : {0}".format(all_state_analysis))
+print("Deactivating transitions to removed states : {0}".format(bool_to_string(deactivateTransitions)))
+print("Performance estimation of the pruned FSM   : {0}".format(bool_to_string(is_active)))
+print("Analysis of the contribution of all states : {0}".format(bool_to_string(all_state_analysis)))
 if(testPrunedFSM):
+	print("FSM pruning                                : Active")
 	print("Evaluation of the pruned FSM               : Active")
 	print("Scenario file                              : {0}".format(default_scenario))
 	print("Target runner                              : {0}".format(default_target_runner))	
@@ -531,6 +544,7 @@ if(testPrunedFSM):
 	print("Random seed                                : {0}".format(randseed))
 else:
 	print("Evaluation of the pruned FSM               : No")
+	print("FSM pruning                                : {0}".format(bool_to_string(pruning)))
 	
 nstates = int(fsm_tokenizer.next_token())
 
@@ -559,12 +573,12 @@ for state in fsm_log_counter:
 print("\nOriginal FSM : ")
 print(original_fsm)
 removed_states = []
+or_fsm = copy.deepcopy(fsm_log_counter);	
 
 if(pruning):
 	cfsm = ""
 	new_number_of_states = nstates
-	current_state = 0	
-	or_fsm = copy.deepcopy(fsm_log_counter);	
+	current_state = 0		
 	#updates state ids and updates the states_map
 	for idx,state in enumerate(fsm_log_counter):				
 		if(state.get_counter()/float(number_of_ticks) > cut_thresh):

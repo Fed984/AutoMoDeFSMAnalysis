@@ -5,7 +5,7 @@ class Tokenizer:
 	# The tokens can be either in a string or they can be provided as a list
 	def __init__(self, tokens, sep=' '):
 		if isinstance(tokens, str):
-			self.tokens = tokens.split(sep)		
+			self.tokens = " ".join(tokens.split(sep)).split()
 		elif isinstance(tokens, list):
 			self.tokens = tokens	
 		else:
@@ -14,11 +14,11 @@ class Tokenizer:
 		
 	# returns the next token and increments the token index	
 	def next_token(self):
-		if(self.index == len(self.tokens)):
+		if(self.index >= len(self.tokens)):
 			return ""
 			
 		ntoken = self.tokens[self.index]
-		self.index+=1
+		self.index+=1		
 		return ntoken
 	
 	# return the token at position index	
@@ -45,8 +45,11 @@ class Tokenizer:
 		
 		return moved
 	# returns the current token without incrementing the index
-	def peek(self):		
-		return self.tokens[self.index]
+	def peek(self):
+		if(self.index  >= len(self.tokens)):
+			return ""		
+		else:
+			return self.tokens[self.index]
 	
 	# returns an integer or raises an execption if it does not find one
 	def getInt(self):
@@ -57,3 +60,6 @@ class Tokenizer:
 		
 	def __str__(self):
 		return "Tokenizer : at index {0} of {1} ".format(self.index,self.tokens)
+	
+	def getTokens(self):
+		return self.tokens
