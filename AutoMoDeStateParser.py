@@ -28,6 +28,7 @@ class AutoMoDeFSMState:
 	def __init__(self, id, tokenizer, states_map):
 		self.id = id                    # the state id (0,1,2...)
 		self.counter = 0                # this variable counts how many times the state is active
+		self.loop = False
 		self.state_paramas = parse_parameters(tokenizer) # parsing the state parameters
 		self.transition_counters = []   # counters for tracing how many times each transition is activated
 		self.transition_definition = [] # definition and parameters of each transition
@@ -139,8 +140,11 @@ class AutoMoDeFSMState:
 		#print("Active transitions {0}".format(self.transition_active))
 		#print("Transition destinations {0}".format(self.transition_destination))
 		for state in states:
+			toremove = state
+			if(state > self.id):
+				toremove = state-1
 			for idx,trs in enumerate(self.transition_destination):
-				if(trs == state):
+				if(trs == toremove):
 					self.transition_active[idx] = False
 					
 		#print("Active transitions after deactivation {0}".format(self.transition_active))
@@ -190,36 +194,68 @@ class AutoMoDeFSMState:
 	def prob_of_reaching_state(self, target, states, num_neighbors=0):
 		if(self.id == target):
 			return 1.0
+		if(self.loop):
+			self.loop = False
+			return 0.0
 			
-		num = len(self.transition_destination)#Number of transition for the state
-		smap = target 
+		active_transitions = []
+		for idx,active in enumerate(self.transition_active):
+			if(active):
+				active_transitions.append(idx)
+		
+		num = len(active_transitions)#Number of transition for the state
+		#smap = target 
 		prob = 0.0
-		if(target > self.id):
-			smap = target-1 #Set smap to the correct transition target for target
+		smap = 0
+		for st in range(0,len(self.states_mapping)):
+			if(st == target):
+				break
+			elif(st != self.id):
+				smap +=1
+				
+		#if(target > self.id):			
+		#	smap = self.states_mapping[target-1] #Set smap to the correct transition target for target
 		
 		prob = 0 #Start with 0 since there can be more than one transition to target
-		for idx,destination in enumerate(self.transition_destination):
+		#for idx,destination in enumerate(self.transition_destination):
+		for idx in active_transitions:
+			destination = self.transition_destination[idx]				
 			if destination == smap : #if state has a transition to target
+				#print("Transition {7} to {0} - target {1} , state {2} has to reach state {3} - {4} {5} {6}".format(destination,target,self.id, states[target].id,smap,self.states_mapping,self.transition_type,idx))
 				tprob = self.get_transition_probability(idx,num_neighbors)
 				prob += tprob/float(num) #Add the probability of taking that transition
 		
 		#print("State {0} probability of reaching directly state {1} : {2}".format(self.id, target, prob))
 		if prob == 0 : #There is no direct transition to target
-			for idx,destination in enumerate(self.transition_destination) :
-				if(destination >= self.id):
+			#for idx,destination in enumerate(self.transition_destination) :			
+			for idx in active_transitions:
+				true_destination = self.transition_destination[idx]				
+				if(true_destination >= self.id):
 					true_destination = destination+1
-				
-				nprob = states[true_destination].prob_of_reaching_state(target,states,num_neighbors)*(self.transition_p[idx]/float(num))
+				#print("true {0} vs real {1} : {2}".format(true_destination, states[true_destination].id,self.states_mapping,self.transition_destination))
+				self.loop = True
+				nprob = states[true_destination].prob_of_reaching_state(target,states,num_neighbors)
+				nprob *= (self.transition_p[idx]/float(num))
 				if(nprob > prob):
 					prob = nprob
 			#print("State {0} probability of reaching indirectly state {1} : {2}".format(self.id, target, prob))
 		if prob == 0:
-			prob = 1
-			print("State {0} impossible to reach state {1} : {2}".format(self.id, target, prob))
+			prob = 0.0
+			#print("WARNING: from state {0} it is impossible to reach state {1}!".format(self.id, target))
 			
 		return prob
 						
 	
 	def update_states_map(self,new_states_map):
-		self.states_mapping = new_states_map				
+		#print("S{1} old state mapping : {0} ".format(self.states_mapping,self.id))
+		self.states_mapping = new_states_map #updates the state mappings		
+		#print("S{1} new state mapping : {0} ".format(self.states_mapping,self.id))
+		#print("S{1} transition destinations before update : {0} ".format(self.transition_destination,self.id))
+		#for idx in range(0, len(self.transition_destination)): # updates the destinations for the transitions
+		#	current_destination = self.transition_destination[idx]			
+		#	self.transition_destination[idx] = self.states_mapping[current_destination]
+		#print("S{1} transition destinations after update  : {0} ".format(self.transition_destination,self.id))			
+		
+	def is_transition_active(self, transition):			
+		return self.transition_active[transition]		
 		
