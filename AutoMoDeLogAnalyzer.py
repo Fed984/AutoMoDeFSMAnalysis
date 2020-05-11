@@ -430,7 +430,7 @@ def evaluate_all_states(or_fsm, number_of_episodes, experiments):
 		print("\n")				
 
 #check that all the arguments are there	
-if(len(sys.argv) < 4):
+if(len(sys.argv) < 1):
 	command_usage()
 	raise(SyntaxError("Insert all the required parameters"))
 	params = False
