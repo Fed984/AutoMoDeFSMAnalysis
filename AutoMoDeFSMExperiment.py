@@ -30,7 +30,7 @@ class AutoMoDeExperiment:
 	
 	def __init__(self):
 		self.result = 0.0
-		self.logs = []
+		self.logs = [] # contains states, transitions, transitions_probabilities, active_transitions,state_contribution,neighbors
 		self.metrics = []
 		self.startIdx = 0
 		self.endIdx = 0
@@ -97,8 +97,8 @@ class AutoMoDeExperiment:
 				tr_prob = episode[2]
 				tr_actives = episode[3]
 				if(state in states):
-					in_episode *= float(tr_prob[idx]/tr_actives[idx]) 
-					if idx+1 < len(episode[0]):
+					in_episode *= float(tr_prob[idx]/tr_actives[idx])
+					if( idx+1 < len(episode[0])):
 						in_episode *= float(tr_prob[idx+1]/tr_actives[idx+1])
 				
 			accumulated_prob += in_episode
@@ -120,13 +120,13 @@ class AutoMoDeExperiment:
 					tr_actives = episode[3] # get the measured probabilities for the behavior policy 
 					if(state in states): # if state has been removed
 						next_prob_b = 1.0 # probability of the transition from state to the next state
-						next_prob_new = 0.5 # assuming the prob of taking or not the transition
+						next_prob_new = 1.0 # assuming the prob of taking or not the transition
 						if(idx+1 < len(tr_prob)): # if there is a next state
 							state_a = episode[0][idx+1] # next state
-							next_prob_b = float(tr_prob[state_a]/tr_actives[state_a]) 
+							next_prob_b = float(tr_prob[idx+1]/tr_actives[idx+1]) 
 							if(idx > 0):
 								state_b = episode[0][idx-1] # previous state
-								next_prob_new = new_fsm[state_b].prob_of_reaching_state(state_a, new_fsm) # probability that the target policy transitions from the previous state to the next state
+								next_prob_new = new_fsm[state_b].prob_of_reaching_state(state_a, new_fsm,episode[5][idx]) # probability that the target policy transitions from the previous state to the next state
 								
 						current_prob_b = float(tr_prob[idx]/tr_actives[idx]) # probability of the transition from the previous state to state
 						in_episode *=  current_prob_b * next_prob_b # combine the two
@@ -147,28 +147,43 @@ class AutoMoDeExperiment:
 		for episode in self.logs:
 			for s in range(0, number_of_states):
 				in_episode = 1 # probability for the behavior policy
-				in_episode_pi = 1 # probability for the target policy
+				in_episode_pi = 1 # probability for the target policy				
 				for idx,state in enumerate(episode[0]):
 					tr_prob = episode[2] # get the measured probabilities for the behavior policy 
-					tr_actives = episode[3] # get the measured probabilities for the behavior policy 
+					tr_actives = episode[3] # get the active transitions 
 					if(state in states): # if state has been removed
 						accumulated_is[state] = 1.0
 						next_prob_b = 1.0 # probability of the transition from state to the next state
-						next_prob_new = 0.5 # assuming the prob of taking or not the transition
+						next_prob_new = 1.0 # assuming the prob of taking or not the transition
 						if(idx+1 < len(tr_prob)): # if there is a next state
 							state_a = episode[0][idx+1] # next state
-							next_prob_b = float(tr_prob[state_a]/tr_actives[state_a]) 
+							next_prob_b = float(tr_prob[idx+1]/tr_actives[idx+1]) 
 							if(idx > 0):
 								state_b = episode[0][idx-1] # previous state
-								next_prob_new = new_fsm[state_b].prob_of_reaching_state(state_a, new_fsm,episode[5][idx]) # probability that the target policy transitions from the previous state to the next state			
+								next_prob_new = new_fsm[state_b].prob_of_reaching_state(state_a, new_fsm,episode[5][idx]) # probability that the target policy transitions from the previous state to the next state		
+								#print("State {0} to {1} prob {2}, removed states {3}".format(state_b,state_a,next_prob_new,states))
 						current_prob_b = float(tr_prob[idx]/tr_actives[idx]) # probability of the transition from the previous state to state
-						in_episode *=  current_prob_b * next_prob_b # combine the two
+						old_in_episode = in_episode
+						in_episode *=  (current_prob_b * next_prob_b) # combine the two
 						in_episode_pi *= next_prob_new # compounds the probabilities
-				if(not(s in states)):
+						
+					else: #Checks if a transtion of an active state has been deleted
+						if(idx > 1 ): # if there is a state before the current one
+							prev_transition = episode[1][idx] # gets the transition
+							prev_state = episode[0][idx-1] # gets the previous state
+							if not(new_fsm[prev_state].is_transition_active(prev_transition)):
+								#print("State {0} transition {1} to {2} is {3}".format(prev_state, prev_transition, state, new_fsm[prev_state].is_transition_active(prev_transition)))
+								current_prob = float(tr_prob[idx]/tr_actives[idx]) # the measured probability of coming to the current state
+								prob_new = new_fsm[prev_state].prob_of_reaching_state(state, new_fsm,episode[5][idx]) # the probability without the deactivated transition
+								in_episode *= current_prob #update mu
+								in_episode_pi *= prob_new #update pi
+								
+				if(not(s in states)):					
 					accumulated_prob[s] += (in_episode_pi/in_episode) *  per_robot_reward # combines the state values per each episode
 					accumulated_is[s] += (in_episode_pi/in_episode)
 			
 		#accumulated_prob = [i/float(len(self.logs)) for i in accumulated_prob]		
+		
 		return accumulated_prob,accumulated_is
 	
 	# Calculates the state values of the new FSM using the ordinary importance sampling
@@ -189,16 +204,28 @@ class AutoMoDeExperiment:
 					if(state in states): # if state has been removed
 						accumulated_is[state] = 1.0
 						next_prob_b = 1.0 # probability of the transition from state to the next state
-						next_prob_new = 0.5 # assuming the prob of taking or not the transition
+						next_prob_new = 1.0 # assuming the prob of taking or not the transition
 						if(idx+1 < len(tr_prob)): # if there is a next state
 							state_a = episode[0][idx+1] # next state
-							next_prob_b = float(tr_prob[state_a]/tr_actives[state_a]) 
+							next_prob_b = float(tr_prob[idx+1]/tr_actives[idx+1]) 
 							if(idx > 0):
-								state_b = episode[0][idx-1] # previous state
-								next_prob_new = new_fsm[state_b].prob_of_reaching_state(state_a, new_fsm) # probability that the target policy transitions from the previous state to the next state			
+								state_b = episode[0][idx-1] # previous state			
+								next_prob_new = new_fsm[state_b].prob_of_reaching_state(state_a, new_fsm,episode[5][idx]) # probability that the target policy transitions from the previous state to the next state		
+								#print("Calculated prob to jump S{0} from S{1} to S{2} to {3}".format(state,state_b,state_a,next_prob_new))
 						current_prob_b = float(tr_prob[idx]/tr_actives[idx]) # probability of the transition from the previous state to state
 						in_episode *=  current_prob_b * next_prob_b # combine the two
 						in_episode_pi *= next_prob_new # compounds the probabilities
+					else: #Checks if a transtion of an active state has been deleted
+						if(idx > 1 ): # if there is a state before the current one
+							prev_transition = episode[1][idx] # gets the transition
+							prev_state = episode[0][idx-1] # gets the previous state
+							if not(new_fsm[prev_state].is_transition_active(prev_transition)):
+								#print("State {0} transition {1} to {2} is {3}".format(prev_state, prev_transition, state, new_fsm[prev_state].is_transition_active(prev_transition)))
+								current_prob = float(tr_prob[idx]/tr_actives[idx]) # the measured probability of coming to the current state
+								prob_new = new_fsm[prev_state].prob_of_reaching_state(state, new_fsm,episode[5][idx]) # the probability without the deactivated transition
+								in_episode *= current_prob #update mu
+								in_episode_pi *= prob_new #update pi
+						
 				if(not(s in states)):
 					accumulated_prob[s] += (in_episode_pi/in_episode) * (episode[4][s]/float(timesteps) * per_robot_reward) # combines the state values per each episode
 					accumulated_is[s] += (in_episode_pi/in_episode)
