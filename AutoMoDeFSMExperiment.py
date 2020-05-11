@@ -97,7 +97,9 @@ class AutoMoDeExperiment:
 				tr_prob = episode[2]
 				tr_actives = episode[3]
 				if(state in states):
-					in_episode *= float(tr_prob[idx]/tr_actives[idx]) * float(tr_prob[idx+1]/tr_actives[idx+1])
+					in_episode *= float(tr_prob[idx]/tr_actives[idx]) 
+					if idx+1 < len(episode[0]):
+						in_episode *= float(tr_prob[idx+1]/tr_actives[idx+1])
 				
 			accumulated_prob += in_episode
 				
