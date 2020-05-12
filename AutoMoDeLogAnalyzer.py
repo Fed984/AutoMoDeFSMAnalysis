@@ -436,7 +436,7 @@ def bool_to_string(bool_option):
 		return "No"		
 
 #check that all the arguments are there	
-if(len(sys.argv) < 1):
+if(len(sys.argv) < 2):
 	command_usage()
 	raise(SyntaxError("Insert all the required parameters"))
 	params = False
