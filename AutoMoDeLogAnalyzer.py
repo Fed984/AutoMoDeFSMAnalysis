@@ -53,6 +53,9 @@ import AutoMoDeFSMExperiment
 import copy
 from tqdm import tqdm
 
+#
+#  Presentation code
+###################################################### 
 commandline_separator = "-------------------------------------------------------------------------------------"	
 # print how to use the script
 def command_usage():
@@ -85,6 +88,9 @@ def command_usage():
 	print("\t --help or -h")
 	print("\t\t Prints this help.\n")
 	
+#
+#  Analysis functions
+###################################################### 
 	
 # the states_map represents the transition map for the states
 # this function updates the list when a state is removed so that
@@ -435,6 +441,10 @@ def bool_to_string(bool_option):
 	else:
 		return "No"		
 
+#
+#  Main code
+###################################################### 
+
 #check that all the arguments are there	
 if(len(sys.argv) < 2):
 	command_usage()
@@ -455,7 +465,8 @@ randseed=1
 is_active = False
 pruning = False
 fsm_tokenizer.next_token() # token 0 "AutoMoDeLogAnalyzer.py"
-fsm_tokenizer.next_token() # history file
+if not(fsm_tokenizer.peek().startswith("-")):
+	fsm_tokenizer.next_token() # history file
 
 #Checks if a value for the threshold has been provided,
 # otherwise it uses the default one 0
