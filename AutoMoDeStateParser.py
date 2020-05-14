@@ -93,7 +93,7 @@ class AutoMoDeFSMState:
 				if(par.startswith("--n")):
 					trs_number = True				
 				
-		for idx,trs in enumerate(self.transition_counters):
+		for idx in range(0,len(self.transition_counters)):
 			if(self.transition_active[idx]):
 				for trs_par in self.transition_definition[idx]:
 					if(not(transform)):
@@ -162,7 +162,7 @@ class AutoMoDeFSMState:
 	def active_transitions(self):
 		atrs = 0
 		for idx,trs in enumerate(self.transition_active):
-			if(trs and self.transition_counters[idx] > 0):
+			if(trs):# and self.transition_counters[idx] > 0):
 				atrs += 1
 			
 		return atrs
