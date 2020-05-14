@@ -80,33 +80,33 @@ class AutoMoDeFSMState:
 		new_transation_index = 0
 		transform = False
 		trs_number = False
-		if(self.counter > 0):			
-			for par in self.state_paramas:	
-				if(trs_number):
-					state_description += " "+str(self.active_transitions())
-					trs_number = False
-				else:
-					state_description += " "+par			
+		#if(self.counter > 0):			
+		for par in self.state_paramas:	
+			if(trs_number):
+				state_description += " "+str(self.active_transitions())
+				trs_number = False
+			else:
+				state_description += " "+par			
+			
+			if(par.startswith("--")):
+				state_description += str(self.id)
+				if(par.startswith("--n")):
+					trs_number = True				
 				
-				if(par.startswith("--")):
-					state_description += str(self.id)
-					if(par.startswith("--n")):
-						trs_number = True				
+		for idx,trs in enumerate(self.transition_counters):
+			if(self.transition_active[idx]):
+				for trs_par in self.transition_definition[idx]:
+					if(not(transform)):
+						state_description += " " + trs_par
+						if(trs_par.startswith("--")):
+							state_description += "{0}x{1}".format(self.id,new_transation_index)
+							if(trs_par.startswith("--n")):
+								transform = True
+					else:
+						state_description += " {0}".format(self.states_mapping[int(trs_par)])
+						transform = False
 					
-			for idx,trs in enumerate(self.transition_counters):
-				if(trs > 0 and self.transition_active[idx]):
-					for trs_par in self.transition_definition[idx]:
-						if(not(transform)):
-							state_description += " " + trs_par
-							if(trs_par.startswith("--")):
-								state_description += "{0}x{1}".format(self.id,new_transation_index)
-								if(trs_par.startswith("--n")):
-									transform = True
-						else:
-							state_description += " {0}".format(self.states_mapping[int(trs_par)])
-							transform = False
-						
-					new_transation_index += 1
+				new_transation_index += 1
 		
 		return state_description	
 		

@@ -539,6 +539,7 @@ while(params and fsm_tokenizer.has_more_tokens()):
 	elif(tok == "--pruning" or tok == "-p"):
 		fsm_tokenizer.next_token()
 		pruning = True
+		is_active = True
 	else:
 		fsm_tokenizer.next_token()
 
