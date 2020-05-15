@@ -225,13 +225,14 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 	vpi_overall = [0.0 for i in range(0,number_of_states)]
 	#state_contribution = [0.0 for i in range(0,number_of_states)]
 	vpi_states = [0 for i in range(0,number_of_states)]	
+	episode_tick = 0
 	for line in tqdm(Lines,desc="Analyzing log file   "):
 		if(not(recording_exp) and line.startswith("Score ")):	  # Starting of the experiment		
 					cscore = float(line.split()[1])   # Getting the score 
 					exp = AutoMoDeFSMExperiment.AutoMoDeExperiment() #Initializing the experiment object	
 					exp.set_result(cscore)
 					recording_exp = True              # Activating the recording
-		elif(recording_exp and not(line.startswith("[INFO]"))):	  # if reading the experiment traces		
+		elif(recording_exp and not(line.startswith("[INFO]"))):	  # if reading the experiment traces
 			t = Tokenizer.Tokenizer(line) # splitting the traces in tokens
 			previous_state = cstate # saving the previous state
 			while t.has_more_tokens():  
@@ -239,8 +240,11 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 				if(ctoken.startswith("--t")):   #if token is a clock tick, update the clock ticks counter
 					ctick = int(t.next_token())
 					number_of_ticks += 1
-					if(ctick == 0 and len(exp_states) > 1):	#Saving the experience for each robot
-						#print("Saving EPISODE ROBOT {0} OF EXPERIMENT {1} vpi {2} # {3}".format(number_of_robots,len(experiments),vpi_overall,len(exp_states)))
+					episode_tick += 1
+					#len(exp_states) > 1
+					if(ctick == 0 and episode_tick > 1):	#Saving the experience for each robot
+						episode_tick = 0
+						#print("Saving EPISODE ROBOT {0} OF EXPERIMENT {1} vpi {2} # {3}".format(number_of_episodes,len(experiments),vpi_overall,len(exp_states)))
 						exp.set_startIdx(ctick)	# saving start tick (not usefull since ticks reset)
 						exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions,exp_state_contribution,exp_neighbors]
 						exp.append_logs(exp_log) # save logs of the robot
@@ -254,10 +258,9 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 						exp_transitions = [0]               # reinitialize
 						exp_transitions_probabilities = [1] # reinitialize
 						exp_active_transitions = [1]        # reinitialize
-						exp_neighbors = [0]                 # reinitialize
+						exp_neighbors = [0]                 # reinitialize					
 					if(ctick == 0): #Updating the total number of robots
-						number_of_episodes += 1
-						
+						number_of_episodes += 1						
 				else:	
 					#match = re.search("--s[0-9]+", ctoken)
 					#if(match != None):				
@@ -273,7 +276,7 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 			
 					#match = re.search("--c[0-9]+", ctoken)		
 					#if(match != None):
-					elif(ctoken.startswith("--c")): #if token is a condition, log only if the condition is true
+					elif(ctoken.startswith("--c")): #if token is a condition, log only if the condition is true						
 						match = re.search("[0-9]+", ctoken)
 						condition = int(match.group(0))
 						type = t.next_token(); # type of the transition
@@ -294,7 +297,7 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 							exp_transitions_probabilities.append(probability)# probabilities
 							exp_active_transitions.append(active_transitions)# active transitions
 							exp_neighbors.append(neighbors)
-							#print("Condition {} of type {} has value {} belongs to state {}".format(condition,type,value,previous_state))
+							#print("Condition {} of type {} has value {} belongs to state {}".format(condition,type,value,previous_state))	
 		elif(recording_exp and line.startswith("[INFO]")): # Beginning of a new experiment 
 			recording_exp = False    # stop recording
 			exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions, exp_state_contribution,exp_neighbors]
@@ -305,6 +308,7 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 			vpi_overall = [0.0]
 			vpi_states = [0]
 			exp_state_contribution = [0]
+			episode_tick = 0
 			for i in range(1,number_of_states):
 				vpi_overall.append(0.0)          # reinitialize 				
 				vpi_states.append(0)             # reinitialize
@@ -353,11 +357,12 @@ def importance_sampling_analysis(fsm_log_counter, removed_states, number_of_epis
 		#print("Experiment {0}".format(idx))
 		is_ratio += ex.calculate_is_ratio(removed_states)
 		#partial_ord_is = ex.calculate_ord_is(removed_states,fsm_log_counter)
-		partial_wei_is,partial_wei_is_den = ex.calculate_weighted_is(removed_states, fsm_log_counter)
 		partial_p_wei_is,partial_p_wei_is_den = ex.calculate_proportional_weighted_is(removed_states, fsm_log_counter)
+		partial_wei_is,partial_wei_is_den = ex.calculate_weighted_is(removed_states, fsm_log_counter)
 		vpi_part = ex.calculate_vpi_for_experiment()
-		vpi_prop = ex.calculate_proportional_vpi_for_experiment()
-		#ord_is = [ord_is[i]+partial_ord_is[i] for i in range(0,number_of_states)]		
+		vpi_prop = ex.calculate_proportional_vpi_for_experiment()		
+		#ord_is = [ord_is[i]+partial_ord_is[i] for i in range(0,number_of_states)]
+		#print("Vpi {0} Wei {1} Prop {2} Den {3} PropDen {4}".format(vpi_part,partial_wei_is,partial_p_wei_is,partial_wei_is_den,partial_p_wei_is_den))		
 		for i in range(0,number_of_states): # Update the values for each state
 			wei_is[i]     += partial_wei_is[i]
 			wei_is_den[i] += partial_wei_is_den[i]
@@ -381,11 +386,11 @@ def importance_sampling_analysis(fsm_log_counter, removed_states, number_of_epis
 		wei_is[i] = wei_is[i]/den
 		if( den2 == 0 ):
 			den2 = 1.0
-		wei_is_proportional[i] = wei_is_proportional[i]/den
+		wei_is_proportional[i] = wei_is_proportional[i]/den2
 		
 	return vpi_all, ord_is, wei_is, vpi_proportional, wei_is_proportional
 
-def evaluate_state_removal(original_fsm, state_to_remove, number_of_episodes, experiments):
+def evaluate_state_removal(original_fsm, state_to_remove, number_of_episodes, experiments, control=5):
 	nstates = len(original_fsm)
 	states_map = list(range(0,nstates-1))
 	print("\nOriginal FSM : ")
@@ -443,11 +448,19 @@ def evaluate_state_removal(original_fsm, state_to_remove, number_of_episodes, ex
 				average_wei_reward = wei_is[s] * float(number_of_episodes/len(experiments))
 				break
 		
+
 		average_prop_reward = 0.0
 		for s in wei_is_proportional:
 			average_prop_reward += s
-				
-		average_prop_reward *= float(number_of_episodes/len(experiments))
+			
+		average_prop_reward *= float(number_of_episodes/len(experiments))	
+		
+		check_ord_vs_wei = 0.0
+		for idx in range(0,len(wei_is)):
+			if(ord_is[idx] > 0.0):
+				check_ord_vs_wei += wei_is[idx]/ord_is[idx]
+		
+		check_ord_vs_wei = check_ord_vs_wei/len(wei_is)
 		
 		if check >= 0 :						
 			print("\n Performance estimation")
@@ -455,6 +468,7 @@ def evaluate_state_removal(original_fsm, state_to_remove, number_of_episodes, ex
 			print("Average performance of the original FSM                              : {0}".format(round(average_original_reward,3)))
 			print("Expected average performance of the pruned FSM                       : {0}".format(round(average_wei_reward,3)))
 			print("Expected average performance with the proportional reward estimation : {0}".format(average_prop_reward))
+			print("Average ratio between ordinary and weighted importance sampling      : {0}".format(check_ord_vs_wei))
 		else :
 			print("\n The pruned FSM performance cannot be estimated:\nThe pruned FSM is too different from the original FSM\n")
 
@@ -494,6 +508,8 @@ max_runs = 10
 randseed=1
 is_active = False
 pruning = False
+remove_state = False
+state_to_remove = -1
 fsm_tokenizer.next_token() # token 0 "AutoMoDeLogAnalyzer.py"
 if not(fsm_tokenizer.peek().startswith("-")):
 	fsm_tokenizer.next_token() # history file
@@ -540,6 +556,10 @@ while(params and fsm_tokenizer.has_more_tokens()):
 		fsm_tokenizer.next_token()
 		pruning = True
 		is_active = True
+	elif(tok == "--remove-state" or tok == "-ds"):
+		fsm_tokenizer.next_token()
+		remove_state = True
+		state_to_remove = fsm_tokenizer.getInt()
 	else:
 		fsm_tokenizer.next_token()
 
@@ -577,6 +597,7 @@ print("Threshold value for state pruning          : {0}".format(cut_thresh))
 print("Deactivating transitions to removed states : {0}".format(bool_to_string(deactivateTransitions)))
 print("Performance estimation of the pruned FSM   : {0}".format(bool_to_string(is_active)))
 print("Analysis of the contribution of all states : {0}".format(bool_to_string(all_state_analysis)))
+print("Estimating state removal                   : {0}".format(bool_to_string(remove_state)))
 if(testPrunedFSM):
 	print("FSM pruning                                : Active")
 	print("Evaluation of the pruned FSM               : Active")
@@ -587,6 +608,8 @@ if(testPrunedFSM):
 else:
 	print("Evaluation of the pruned FSM               : No")
 	print("FSM pruning                                : {0}".format(bool_to_string(pruning)))
+if remove_state:
+	print("State to remove                            : {0}".format(state_to_remove))
 	
 nstates = int(fsm_tokenizer.next_token())
 
@@ -610,7 +633,8 @@ for state in fsm_log_counter:
 	state_load = round(float(state.get_counter())/float(number_of_ticks)*100,2)
 	print("Sate {0} active for {1} ticks or {2}% ".format(state.get_id(),state.get_counter(),state_load)+str(state.get_transition_counters()))
 	
-
+#for idx,e in enumerate(experiments):
+#	print("Exp {0} #episodes : {1}".format(idx, len(e.logs)) )
 
 print("\nOriginal FSM : ")
 print(original_fsm)
@@ -650,7 +674,7 @@ if(is_active and len(removed_states) > 0 ):
 	print("\n Off-policy analysis of the pruned FSM")
 	print(commandline_separator)	
 	print("State values of the original FSM                             : {0}".format([round(i,4) for i in vpi_all]))	
-	print("States removed by pruning                                    : {0}".format(removed_states))
+	print("States removed                                               : {0}".format(removed_states))
 	print("State values after pruning with ordinary importance sampling : {0}".format([round(i,4) for i in ord_is]))
 	print("State values after pruning with weighted importance sampling : {0}".format([round(i,4) for i in wei_is]))
 	print("State values using proportional reward calculation           : {0}".format([round(i,4) for i in vpi_proportional]))
@@ -663,13 +687,23 @@ if(is_active and len(removed_states) > 0 ):
 			average_wei_reward = wei_is[s] * float(number_of_episodes/len(experiments))
 			break
 	
+	average_prop_reward = 0.0
+	for s in wei_is_proportional:
+		average_prop_reward += s
+			
+	average_prop_reward *= float(number_of_episodes/len(experiments))
+	
 	print("\n Performance estimation")
 	print(commandline_separator)
-	print("Average performance of the original FSM        : {0}".format(round(average_original_reward,3)))
-	print("Expected average performance of the pruned FSM : {0}".format(round(average_wei_reward,3)))
+	print("Average performance of the original FSM           : {0}".format(round(average_original_reward,3)))
+	print("Expected average performance of the pruned FSM    : {0}".format(round(average_wei_reward,3)))
+	print("Expected performance with proportional estimation : {0}".format(average_prop_reward))
 	
 if(all_state_analysis):
 	evaluate_all_states(or_fsm, number_of_episodes, experiments)
+
+if(remove_state):
+	evaluate_state_removal(or_fsm, state_to_remove, number_of_episodes, experiments)
 
 if(testPrunedFSM):
 	print("\n Performance evaluation")

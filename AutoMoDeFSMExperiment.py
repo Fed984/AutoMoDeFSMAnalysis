@@ -65,7 +65,8 @@ class AutoMoDeExperiment:
 		#print("Num of robots {0}, result {1}, reward per robot {2}, states {3}".format(num_of_robots, self.result, per_robot_reward, self.vpi))
 		for count in self.vpi:
 			vpi.append((count * per_robot_reward)/num_of_robots)
-		
+			
+		#print("Episode vpi {0}".format(vpi))
 		return vpi
 	
 	def calculate_proportional_vpi_for_experiment(self):
@@ -141,47 +142,56 @@ class AutoMoDeExperiment:
 	def calculate_weighted_is(self,states, new_fsm):		
 		number_of_states = len(self.vpi) # save the total number of states
 		num_of_robots = float(len(self.logs)) # number of robots or episodes per experiment
-		accumulated_prob = [0 for i in range(0,number_of_states)]; # accumulated transition probability of the original fsm
-		accumulated_is = [0 for i in range(0,number_of_states)];
+		accumulated_prob = [] # accumulated transition probability of the original fsm
+		accumulated_is = [] 
+		first_visit_states = []
+		for i in range(0,number_of_states):
+			accumulated_prob.append(0.0)
+			accumulated_is.append(0.0) 			
 		per_robot_reward = self.result/float(num_of_robots) # reward for each robot/episode
-		for episode in self.logs:
-			for s in range(0, number_of_states):
-				in_episode = 1 # probability for the behavior policy
-				in_episode_pi = 1 # probability for the target policy				
-				for idx,state in enumerate(episode[0]):
-					tr_prob = episode[2] # get the measured probabilities for the behavior policy 
-					tr_actives = episode[3] # get the active transitions 
-					if(state in states): # if state has been removed
-						accumulated_is[state] = 1.0
-						next_prob_b = 1.0 # probability of the transition from state to the next state
-						next_prob_new = 1.0 # assuming the prob of taking or not the transition
-						if(idx+1 < len(tr_prob)): # if there is a next state
-							state_a = episode[0][idx+1] # next state
-							next_prob_b = float(tr_prob[idx+1]/tr_actives[idx+1]) 
-							if(idx > 0):
-								state_b = episode[0][idx-1] # previous state
-								next_prob_new = new_fsm[state_b].prob_of_reaching_state(state_a, new_fsm,episode[5][idx]) # probability that the target policy transitions from the previous state to the next state		
-								#print("State {0} to {1} prob {2}, removed states {3}".format(state_b,state_a,next_prob_new,states))
-						current_prob_b = float(tr_prob[idx]/tr_actives[idx]) # probability of the transition from the previous state to state
-						old_in_episode = in_episode
-						in_episode *=  (current_prob_b * next_prob_b) # combine the two
-						in_episode_pi *= next_prob_new # compounds the probabilities
-						
-					else: #Checks if a transtion of an active state has been deleted
-						if(idx > 1 ): # if there is a state before the current one
-							prev_transition = episode[1][idx] # gets the transition
-							prev_state = episode[0][idx-1] # gets the previous state
-							if not(new_fsm[prev_state].is_transition_active(prev_transition)):
-								#print("State {0} transition {1} to {2} is {3}".format(prev_state, prev_transition, state, new_fsm[prev_state].is_transition_active(prev_transition)))
-								current_prob = float(tr_prob[idx]/tr_actives[idx]) # the measured probability of coming to the current state
-								prob_new = new_fsm[prev_state].prob_of_reaching_state(state, new_fsm,episode[5][idx]) # the probability without the deactivated transition
-								in_episode *= current_prob #update mu
-								in_episode_pi *= prob_new #update pi
-								
-				if(not(s in states)):					
+		for episode in self.logs:			
+			in_episode = 1.0 # probability for the behavior policy
+			in_episode_pi = 1.0 # probability for the target policy				
+			first_visit_states = [False for i in range(0,number_of_states)]
+			for idx,state in enumerate(episode[0]):
+				tr_prob = episode[2] # get the measured probabilities for the behavior policy 
+				tr_actives = episode[3] # get the active transitions 
+				if not(first_visit_states[state]):
+					first_visit_states[state] = True
+					
+				if(state in states): # if state has been removed
+					accumulated_is[state] = 1.0
+					next_prob_b = 1.0 # probability of the transition from state to the next state
+					next_prob_new = 1.0 # assuming the prob of taking or not the transition
+					if(idx+1 < len(tr_prob)): # if there is a next state
+						state_a = episode[0][idx+1] # next state
+						next_prob_b = float(tr_prob[idx+1]/tr_actives[idx+1]) 
+						if(idx > 0):
+							state_b = episode[0][idx-1] # previous state
+							next_prob_new = new_fsm[state_b].prob_of_reaching_state(state_a, new_fsm,episode[5][idx]) # probability that the target policy transitions from the previous state to the next state		
+							#print("State {0} to {1} prob {2}, removed states {3}".format(state_b,state_a,next_prob_new,states))
+					current_prob_b = float(tr_prob[idx]/tr_actives[idx]) # probability of the transition from the previous state to state
+					old_in_episode = in_episode
+					in_episode *=  (current_prob_b * next_prob_b) # combine the two
+					in_episode_pi *= next_prob_new # compounds the probabilities
+					
+				else: #Checks if a transtion of an active state has been deleted
+					if(idx > 1 ): # if there is a state before the current one
+						prev_transition = episode[1][idx] # gets the transition
+						prev_state = episode[0][idx-1] # gets the previous state
+						if not(new_fsm[prev_state].is_transition_active(prev_transition)):
+							#print("State {0} transition {1} to {2} is {3}".format(prev_state, prev_transition, state, new_fsm[prev_state].is_transition_active(prev_transition)))
+							current_prob = float(tr_prob[idx]/tr_actives[idx]) # the measured probability of coming to the current state
+							prob_new = new_fsm[prev_state].prob_of_reaching_state(state, new_fsm,episode[5][idx]) # the probability without the deactivated transition
+							in_episode *= current_prob #update mu
+							in_episode_pi *= prob_new #update pi
+							
+			for s in range(0, number_of_states):				
+				if(not(s in states) and first_visit_states[s]):		
 					accumulated_prob[s] += (in_episode_pi/in_episode) *  per_robot_reward # combines the state values per each episode
-					accumulated_is[s] += (in_episode_pi/in_episode)
-			
+				accumulated_is[s] += (in_episode_pi/in_episode)
+		
+		#print("Episode accumulated_prob {0} / {1}".format(accumulated_prob,accumulated_is))
 		#accumulated_prob = [i/float(len(self.logs)) for i in accumulated_prob]		
 		
 		return accumulated_prob,accumulated_is
@@ -194,42 +204,45 @@ class AutoMoDeExperiment:
 		accumulated_prob = [0 for i in range(0,number_of_states)]; # accumulated transition probability of the original fsm
 		accumulated_is = [0 for i in range(0,number_of_states)];
 		per_robot_reward = self.result/float(num_of_robots) # reward for each robot/episode
-		for episode in self.logs:
-			for s in range(0, number_of_states):
-				in_episode = 1 # probability for the behavior policy
-				in_episode_pi = 1 # probability for the target policy
-				for idx,state in enumerate(episode[0]):
-					tr_prob = episode[2] # get the measured probabilities for the behavior policy 
-					tr_actives = episode[3] # get the measured probabilities for the behavior policy 
-					if(state in states): # if state has been removed
-						accumulated_is[state] = 1.0
-						next_prob_b = 1.0 # probability of the transition from state to the next state
-						next_prob_new = 1.0 # assuming the prob of taking or not the transition
-						if(idx+1 < len(tr_prob)): # if there is a next state
-							state_a = episode[0][idx+1] # next state
-							next_prob_b = float(tr_prob[idx+1]/tr_actives[idx+1]) 
-							if(idx > 0):
-								state_b = episode[0][idx-1] # previous state			
-								next_prob_new = new_fsm[state_b].prob_of_reaching_state(state_a, new_fsm,episode[5][idx]) # probability that the target policy transitions from the previous state to the next state		
-								#print("Calculated prob to jump S{0} from S{1} to S{2} to {3}".format(state,state_b,state_a,next_prob_new))
-						current_prob_b = float(tr_prob[idx]/tr_actives[idx]) # probability of the transition from the previous state to state
-						in_episode *=  current_prob_b * next_prob_b # combine the two
-						in_episode_pi *= next_prob_new # compounds the probabilities
-					else: #Checks if a transtion of an active state has been deleted
-						if(idx > 1 ): # if there is a state before the current one
-							prev_transition = episode[1][idx] # gets the transition
-							prev_state = episode[0][idx-1] # gets the previous state
-							if not(new_fsm[prev_state].is_transition_active(prev_transition)):
-								#print("State {0} transition {1} to {2} is {3}".format(prev_state, prev_transition, state, new_fsm[prev_state].is_transition_active(prev_transition)))
-								current_prob = float(tr_prob[idx]/tr_actives[idx]) # the measured probability of coming to the current state
-								prob_new = new_fsm[prev_state].prob_of_reaching_state(state, new_fsm,episode[5][idx]) # the probability without the deactivated transition
-								in_episode *= current_prob #update mu
-								in_episode_pi *= prob_new #update pi
-						
-				if(not(s in states)):
-					accumulated_prob[s] += (in_episode_pi/in_episode) * (episode[4][s]/float(timesteps) * per_robot_reward) # combines the state values per each episode
-					accumulated_is[s] += (in_episode_pi/in_episode)
+		for episode in self.logs:			
+			in_episode = 1 # probability for the behavior policy
+			in_episode_pi = 1 # probability for the target policy
+			first_visit_states = [False for i in range(0,number_of_states)]
+			for idx,state in enumerate(episode[0]):
+				tr_prob = episode[2] # get the measured probabilities for the behavior policy 
+				tr_actives = episode[3] # get the measured probabilities for the behavior policy 
+				if not(first_visit_states[state]):
+					first_visit_states[state] = True
+					
+				if(state in states): # if state has been removed
+					accumulated_is[state] = 1.0
+					next_prob_b = 1.0 # probability of the transition from state to the next state
+					next_prob_new = 1.0 # assuming the prob of taking or not the transition
+					if(idx+1 < len(tr_prob)): # if there is a next state
+						state_a = episode[0][idx+1] # next state
+						next_prob_b = float(tr_prob[idx+1]/tr_actives[idx+1]) 
+						if(idx > 0):
+							state_b = episode[0][idx-1] # previous state			
+							next_prob_new = new_fsm[state_b].prob_of_reaching_state(state_a, new_fsm,episode[5][idx]) # probability that the target policy transitions from the previous state to the next state		
+							#print("Calculated prob to jump S{0} from S{1} to S{2} to {3}".format(state,state_b,state_a,next_prob_new))
+					current_prob_b = float(tr_prob[idx]/tr_actives[idx]) # probability of the transition from the previous state to state
+					in_episode *=  current_prob_b * next_prob_b # combine the two
+					in_episode_pi *= next_prob_new # compounds the probabilities
+				else: #Checks if a transtion of an active state has been deleted
+					if(idx > 1 ): # if there is a state before the current one
+						prev_transition = episode[1][idx] # gets the transition
+						prev_state = episode[0][idx-1] # gets the previous state
+						if not(new_fsm[prev_state].is_transition_active(prev_transition)):
+							#print("State {0} transition {1} to {2} is {3}".format(prev_state, prev_transition, state, new_fsm[prev_state].is_transition_active(prev_transition)))
+							current_prob = float(tr_prob[idx]/tr_actives[idx]) # the measured probability of coming to the current state
+							prob_new = new_fsm[prev_state].prob_of_reaching_state(state, new_fsm,episode[5][idx]) # the probability without the deactivated transition
+							in_episode *= current_prob #update mu
+							in_episode_pi *= prob_new #update pi
 			
+			for s in range(0, number_of_states):	
+				if(not(s in states) and first_visit_states[s]):					
+					accumulated_prob[s] += (in_episode_pi/in_episode) * (episode[4][s]/float(timesteps) * per_robot_reward) # combines the state values per each episode
+				accumulated_is[s] += (in_episode_pi/in_episode)		
 		#accumulated_prob = [i/float(len(self.logs)) for i in accumulated_prob]		
 		return accumulated_prob,accumulated_is
 	
