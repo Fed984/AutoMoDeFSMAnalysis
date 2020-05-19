@@ -78,7 +78,7 @@ class AutoMoDeExperiment:
 		for episode in self.logs:
 			for idx,stateContrib in enumerate(episode[4]):				
 				vpi[idx] += (stateContrib/float(timesteps) * per_robot_reward)
-				#print("State {0} : stateContrib {1} vpi {2}".format(idx,stateContrib,vpi[idx] ))		
+		#		print("State {0} : stateContrib {1} vpi {2}".format(idx,stateContrib,vpi[idx] ))		
 		return vpi
 	
 	def set_state_contribution(self, state_contrib):
@@ -189,9 +189,11 @@ class AutoMoDeExperiment:
 			for s in range(0, number_of_states):				
 				if(not(s in states) and first_visit_states[s]):		
 					accumulated_prob[s] += (in_episode_pi/in_episode) *  per_robot_reward # combines the state values per each episode
+					#if(s==1 and in_episode_pi>0):
+					#	print("Con {0} inep {1} ratio {2} total rew {3} \n {4}".format(in_episode_pi,in_episode,(in_episode_pi/in_episode),per_robot_reward,episode[0]))
 				accumulated_is[s] += (in_episode_pi/in_episode)
 		
-		#print("Episode accumulated_prob {0} / {1}".format(accumulated_prob,accumulated_is))
+		#print("Episode accumulated_prob {0} / {1} ".format(accumulated_prob,accumulated_is))
 		#accumulated_prob = [i/float(len(self.logs)) for i in accumulated_prob]		
 		
 		return accumulated_prob,accumulated_is
@@ -240,8 +242,13 @@ class AutoMoDeExperiment:
 							in_episode_pi *= prob_new #update pi
 			
 			for s in range(0, number_of_states):	
-				if(not(s in states) and first_visit_states[s]):					
-					accumulated_prob[s] += (in_episode_pi/in_episode) * (episode[4][s]/float(timesteps) * per_robot_reward) # combines the state values per each episode
+				if(not(s in states) and first_visit_states[s]):		
+					state_reward = (episode[4][s]/float(timesteps) * per_robot_reward)
+					episode_val = (in_episode_pi/in_episode) *  state_reward			
+					accumulated_prob[s] += episode_val # combines the state values per each episode
+					#is_c = in_episode_pi/in_episode
+					#if s == 0 and is_c > 0 :
+					#	print("Acc {0} : {1} / {2} = {3} {5}\n {4}".format(episode_val, in_episode_pi, in_episode, is_c, episode[0],state_reward))
 				accumulated_is[s] += (in_episode_pi/in_episode)		
 		#accumulated_prob = [i/float(len(self.logs)) for i in accumulated_prob]		
 		return accumulated_prob,accumulated_is

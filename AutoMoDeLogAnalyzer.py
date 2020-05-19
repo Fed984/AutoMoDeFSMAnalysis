@@ -441,14 +441,18 @@ def evaluate_state_removal(original_fsm, state_to_remove, number_of_episodes, ex
 		average_original_reward = vpi_all[0] * float(number_of_episodes/len(experiments))
 		
 		average_wei_reward = 1.0
+		
 		check = -1	
 		for s in range(0,len(wei_is)):
-			if(wei_is[s] != 0):
+			if(s != state_to_remove):
 				check = s
-				average_wei_reward = wei_is[s] * float(number_of_episodes/len(experiments))
-				break
-		
-
+				state_contribution = 1.0
+				if vpi_all[s] != 0.0 :
+					state_contribution =  wei_is[s]/vpi_all[s]
+					
+				average_wei_reward += average_original_reward * state_contribution
+				#break
+		average_wei_reward = average_wei_reward/(len(wei_is) - 1)		
 		average_prop_reward = 0.0
 		for s in wei_is_proportional:
 			average_prop_reward += s

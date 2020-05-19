@@ -134,7 +134,7 @@ class AutoMoDeFSMState:
 			if(trs == state):
 				self.transition_active[idx] = False
 	
-	def deactivate_transition_to_states(self, states):
+	def deactivate_transition_to_states(self, states, keep_connection=False):
 		#print("State {0}".format(self.id))
 		#print("States to deactivate {0}".format(states))
 		#print("Active transitions {0}".format(self.transition_active))
@@ -154,7 +154,7 @@ class AutoMoDeFSMState:
 				oops = False
 				break
 		
-		if(oops):
+		if(oops and keep_connection):
 			#print("Warning: state {0} has no active transitions".format(self.id))
 			#print("A transition will be reactivated in order to have a functioning FSM")
 			self.transition_active[0] = True
@@ -192,18 +192,20 @@ class AutoMoDeFSMState:
 		return prob 
 	
 	def prob_of_reaching_state(self, target, states, num_neighbors=0):
-		if(self.id == target):
-			return 1.0
 		if(self.loop):
 			self.loop = False
 			return 0.0
 			
 		active_transitions = []
+		
 		for idx,active in enumerate(self.transition_active):
 			if(active):
 				active_transitions.append(idx)
 		
 		num = len(active_transitions)#Number of transition for the state
+		if(self.id == target):			
+			return 1.0/(num)
+		
 		#smap = target 
 		prob = 0.0
 		smap = 0
