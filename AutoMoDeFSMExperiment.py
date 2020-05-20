@@ -226,8 +226,8 @@ class AutoMoDeExperiment:
 						if(idx > 0):
 							state_b = episode[0][idx-1] # previous state			
 							next_prob_new = new_fsm[state_b].prob_of_reaching_state(state_a, new_fsm,episode[5][idx]) # probability that the target policy transitions from the previous state to the next state	
-							if(state_b != 4 and state_a != state_b):	
-								print("Calculated prob to jump S{0} from S{1}[{4} {5}] to S{2} to {3}".format(state,state_b,state_a,next_prob_new,new_fsm[state_b].id,new_fsm[state_b].original_id))
+							#if(state_b != 4 and state_a != state_b):	
+							#	print("Calculated prob to jump S{0} from S{1}[{4} {5}] to S{2} to {3}".format(state,state_b,state_a,next_prob_new,new_fsm[state_b].id,new_fsm[state_b].original_id))
 					current_prob_b = float(tr_prob[idx]/tr_actives[idx]) # probability of the transition from the previous state to state
 					in_episode *=  current_prob_b * next_prob_b # combine the two
 					in_episode_pi *= next_prob_new # compounds the probabilities
