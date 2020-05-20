@@ -441,10 +441,9 @@ def evaluate_state_removal(original_fsm, state_to_remove, number_of_episodes, ex
 		average_original_reward = vpi_all[0] * float(number_of_episodes/len(experiments))
 		
 		average_wei_reward = 1.0
-		
 		check = -1	
 		for s in range(0,len(wei_is)):
-			if(s != state_to_remove):
+			if(s != state_to_remove):				
 				check = s
 				state_contribution = 1.0
 				if vpi_all[s] != 0.0 :
@@ -475,13 +474,23 @@ def evaluate_state_removal(original_fsm, state_to_remove, number_of_episodes, ex
 			print("Average ratio between ordinary and weighted importance sampling      : {0}".format(check_ord_vs_wei))
 		else :
 			print("\n The pruned FSM performance cannot be estimated:\nThe pruned FSM is too different from the original FSM\n")
+		
+		return average_original_reward,average_wei_reward,average_prop_reward
 
 def evaluate_all_states(or_fsm, number_of_episodes, experiments):
 	print("\n Analysis of states contribution")
+	results = []
 	for state in or_fsm:
 		print("Evaluating effectiveness of the FSM without state : {0}".format(state.id))
-		evaluate_state_removal(or_fsm, state.id, number_of_episodes, experiments)
-		print("\n")		
+		
+		original,wis,wisprop = evaluate_state_removal(or_fsm, state.id, number_of_episodes, experiments)
+		results.append([original, wis, wisprop])
+		print("\n")
+	
+	print("\n Results summary")
+	print("State \t\t Original \t\t WIS \t\t Proportional WIS \t\t Average WIS")
+	for idx,res in enumerate(results):
+		print("   {0}   \t\t {1} \t\t\t {2}  \t\t{3} \t\t {4}".format(idx, res[0], round(res[1],3), round(res[2],3), round(((res[1]+res[2])/2.0),3)))
 
 def bool_to_string(bool_option):
 	if(bool_option):

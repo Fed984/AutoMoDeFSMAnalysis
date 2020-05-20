@@ -160,7 +160,7 @@ class AutoMoDeExperiment:
 					first_visit_states[state] = True
 					
 				if(state in states): # if state has been removed
-					accumulated_is[state] = 1.0
+					#accumulated_is[state] = 1.0
 					next_prob_b = 1.0 # probability of the transition from state to the next state
 					next_prob_new = 1.0 # assuming the prob of taking or not the transition
 					if(idx+1 < len(tr_prob)): # if there is a next state
@@ -173,7 +173,7 @@ class AutoMoDeExperiment:
 					current_prob_b = float(tr_prob[idx]/tr_actives[idx]) # probability of the transition from the previous state to state
 					old_in_episode = in_episode
 					in_episode *=  (current_prob_b * next_prob_b) # combine the two
-					in_episode_pi *= next_prob_new # compounds the probabilities
+					in_episode_pi *= next_prob_new#/tr_actives[idx] # compounds the probabilities
 					
 				else: #Checks if a transtion of an active state has been deleted
 					if(idx > 1 ): # if there is a state before the current one
@@ -189,7 +189,7 @@ class AutoMoDeExperiment:
 			for s in range(0, number_of_states):				
 				if(not(s in states) and first_visit_states[s]):		
 					accumulated_prob[s] += (in_episode_pi/in_episode) *  per_robot_reward # combines the state values per each episode
-					#if(s==1 and in_episode_pi>0):
+					#if(s==0 and in_episode_pi>0):
 					#	print("Con {0} inep {1} ratio {2} total rew {3} \n {4}".format(in_episode_pi,in_episode,(in_episode_pi/in_episode),per_robot_reward,episode[0]))
 				accumulated_is[s] += (in_episode_pi/in_episode)
 		
@@ -207,17 +207,17 @@ class AutoMoDeExperiment:
 		accumulated_is = [0 for i in range(0,number_of_states)];
 		per_robot_reward = self.result/float(num_of_robots) # reward for each robot/episode
 		for episode in self.logs:			
-			in_episode = 1 # probability for the behavior policy
-			in_episode_pi = 1 # probability for the target policy
+			in_episode = 1.0 # probability for the behavior policy
+			in_episode_pi = 1.0 # probability for the target policy
 			first_visit_states = [False for i in range(0,number_of_states)]
 			for idx,state in enumerate(episode[0]):
 				tr_prob = episode[2] # get the measured probabilities for the behavior policy 
-				tr_actives = episode[3] # get the measured probabilities for the behavior policy 
+				tr_actives = episode[3] # get the number of active transitions for the behavior policy 
 				if not(first_visit_states[state]):
-					first_visit_states[state] = True
+					first_visit_states[state] = True # if a state does not appear in the history it does not get a reward
 					
 				if(state in states): # if state has been removed
-					accumulated_is[state] = 1.0
+					#accumulated_is[state] = 1.0
 					next_prob_b = 1.0 # probability of the transition from state to the next state
 					next_prob_new = 1.0 # assuming the prob of taking or not the transition
 					if(idx+1 < len(tr_prob)): # if there is a next state
@@ -225,8 +225,9 @@ class AutoMoDeExperiment:
 						next_prob_b = float(tr_prob[idx+1]/tr_actives[idx+1]) 
 						if(idx > 0):
 							state_b = episode[0][idx-1] # previous state			
-							next_prob_new = new_fsm[state_b].prob_of_reaching_state(state_a, new_fsm,episode[5][idx]) # probability that the target policy transitions from the previous state to the next state		
-							#print("Calculated prob to jump S{0} from S{1} to S{2} to {3}".format(state,state_b,state_a,next_prob_new))
+							next_prob_new = new_fsm[state_b].prob_of_reaching_state(state_a, new_fsm,episode[5][idx]) # probability that the target policy transitions from the previous state to the next state	
+							if(state_b != 4 and state_a != state_b):	
+								print("Calculated prob to jump S{0} from S{1}[{4} {5}] to S{2} to {3}".format(state,state_b,state_a,next_prob_new,new_fsm[state_b].id,new_fsm[state_b].original_id))
 					current_prob_b = float(tr_prob[idx]/tr_actives[idx]) # probability of the transition from the previous state to state
 					in_episode *=  current_prob_b * next_prob_b # combine the two
 					in_episode_pi *= next_prob_new # compounds the probabilities
@@ -247,7 +248,7 @@ class AutoMoDeExperiment:
 					episode_val = (in_episode_pi/in_episode) *  state_reward			
 					accumulated_prob[s] += episode_val # combines the state values per each episode
 					#is_c = in_episode_pi/in_episode
-					#if s == 0 and is_c > 0 :
+					#if s == 2 and is_c > 0 :
 					#	print("Acc {0} : {1} / {2} = {3} {5}\n {4}".format(episode_val, in_episode_pi, in_episode, is_c, episode[0],state_reward))
 				accumulated_is[s] += (in_episode_pi/in_episode)		
 		#accumulated_prob = [i/float(len(self.logs)) for i in accumulated_prob]		
