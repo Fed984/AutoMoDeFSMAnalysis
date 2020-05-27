@@ -180,19 +180,33 @@ class AutoMoDeFSMState:
 			
 		return num
 	
-	def get_transition_probability(self, transition, num_neighbors=0):
+	def get_transition_probability(self, transition, num_neighbors=0, ground_sensor=-1):
 		type = self.transition_type[transition]
 		prob = self.transition_p[transition]
-		if type == 3 :
+		blackGroundThreshold = 0.1
+		whiteGroundThreshold = 0.95		
+		type_name = ["BlackFloor", "GrayFloor", "WhiteFloor", "NeighborsCount", "InvertedNeighborsCount", "FixedProbability"]	
+		if type == 0 and ( ground_sensor >= blackGroundThreshold or ground_sensor < 0) :
+			prob = 0.0
+			#print("State {0} Transition {1} type 0 -> prob {2}".format(self.id, transition,prob))
+		elif type == 1 and ( ground_sensor >= whiteGroundThreshold or ground_sensor < blackGroundThreshold or ground_sensor < 0):
+			prob = 0.0
+			#print("State {0} Transition {1} type 1 -> prob {2}".format(self.id, transition,prob))
+		elif type == 2 and ( ground_sensor < whiteGroundThreshold or ground_sensor < 0) :	
+			prob = 0.0
+			#print("State {0} Transition {1} type 2 -> prob {2}".format(self.id, transition,prob))
+		elif type == 3 :
 			prob = 1.0/(1.0 + math.exp(self.transition_w[transition]*(prob-num_neighbors)))
 			#print("State {0} Transition {1} type 3 -> prob {2}".format(self.id, transition,prob))
-		if type == 4:
+		elif type == 4:
 			prob = 1.0 - 1.0/(1.0 + math.exp(self.transition_w[transition]*(prob-num_neighbors)))
-			#print("State {0} Transition {1} type 4 -> prob {2}".format(self.id, transition,prob))			
-			
+			#print("State {0} Transition {1} type 4 -> prob {2}".format(self.id, transition,prob))		
+		
+		#if ground_sensor > 0:
+		#	print("State {0} Transition {1} type {2} ground {3} neighbors {4} -> prob {5}".format(self.id, transition,type_name[type],ground_sensor,num_neighbors,prob))
 		return prob 
 	
-	def prob_of_reaching_state(self, target, states, num_neighbors=0):		
+	def prob_of_reaching_state(self, target, states, num_neighbors=0, ground_sensor=-1):		
 		if(self.loop):
 			self.loop = False
 			return 0.0
@@ -227,7 +241,7 @@ class AutoMoDeFSMState:
 			destination = self.transition_destination[idx]
 			#print("State {0} Transition {1} to {2} - target {3} {4} ".format(self.id,self.transition_type[idx],destination,target, states[target].original_id))
 			if destination == smap : #if state has a transition to target							
-				tprob = self.get_transition_probability(idx,num_neighbors)
+				tprob = self.get_transition_probability(idx,num_neighbors,ground_sensor)
 				prob += tprob/float(num) #Add the probability of taking that transition
 		
 		#print("State {0} probability of reaching directly state {1} : {2}".format(self.id, target, prob))
@@ -239,10 +253,10 @@ class AutoMoDeFSMState:
 					true_destination = destination+1
 					#print("State {5} target {4} -> true {0} vs real {1} : {2} destinations {3}".format(true_destination, states[true_destination].id,self.states_mapping,self.transition_destination,target,self.original_id))				
 				self.loop = True
-				nprob = states[true_destination].prob_of_reaching_state(target,states,num_neighbors)
+				nprob = states[true_destination].prob_of_reaching_state(target,states,num_neighbors,ground_sensor)
 				#print("State {5} target {4} -> true {0} vs real {1} : {2} destinations {3} = {6}".format(true_destination, states[true_destination].id,states[true_destination].states_mapping,states[true_destination].transition_destination,target,self.original_id,nprob))
 				#nprob *= (self.transition_p[idx]/float(num))
-				nprob *= self.get_transition_probability(idx,num_neighbors)/float(num)
+				nprob *= self.get_transition_probability(idx,num_neighbors,ground_sensor)/float(num)
 				if(nprob > prob):
 					prob = nprob
 				#print("State {0} probability of reaching indirectly state {1} : {2}".format(self.id, target, prob))
