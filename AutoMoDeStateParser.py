@@ -39,6 +39,8 @@ class AutoMoDeFSMState:
 		self.transition_type = []
 		self.transition_w = []          
 		self.states_mapping = states_map# a list defining the id of all states
+		self.active = True
+		
 		while(tokenizer.has_more_tokens() and re.search("--s[0-9]+", tokenizer.peek()) == None):
 			self.transition_counters.append(0)
 			self.transition_active.append(True)
@@ -200,8 +202,8 @@ class AutoMoDeFSMState:
 			#print("State {0} Transition {1} type 3 -> prob {2}".format(self.id, transition,prob))
 		elif type == 4:
 			prob = 1.0 - 1.0/(1.0 + math.exp(self.transition_w[transition]*(prob-num_neighbors)))
-			#print("State {0} Transition {1} type 4 -> prob {2}".format(self.id, transition,prob))		
-		
+			#if(self.id == 0):
+			#print("State {0} Transition {1} type 4 -> prob {2} [ p {3} | w {4} | n {5}]".format(self.id, transition,prob,self.transition_p[transition],self.transition_w[transition],num_neighbors))		
 		#if ground_sensor > 0:
 		#	print("State {0} Transition {1} type {2} ground {3} neighbors {4} -> prob {5}".format(self.id, transition,type_name[type],ground_sensor,num_neighbors,prob))
 		return prob 
@@ -244,7 +246,9 @@ class AutoMoDeFSMState:
 				tprob = self.get_transition_probability(idx,num_neighbors,ground_sensor)
 				prob += tprob/float(num) #Add the probability of taking that transition
 		
-		#print("State {0} probability of reaching directly state {1} : {2}".format(self.id, target, prob))
+		#if(self.id == 0):
+		#	print("State {0} probability of reaching directly state {1} : {2}".format(self.id, target, prob))
+			
 		if prob == 0 : #There is no direct transition to target
 			#for idx,destination in enumerate(self.transition_destination) :			
 			for idx in active_transitions:

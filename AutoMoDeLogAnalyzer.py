@@ -91,7 +91,22 @@ def command_usage():
 	print("\t\t as the FSM that generated the log.\n")
 	print("\t --help or -h")
 	print("\t\t Prints this help.\n")
+
+
+#
+# This function returns the string representation of a finite state machine as
+# the set of parameters accepted from AutoMoDe
+## 
+def print_fsm(fsm_log_counter):
+	cfsm = ""
+	for state in fsm_log_counter:
+		if(state.active):					
+			cfsm += str(state)+" "
+
+	cfsm = "--nstates {0}".format(len(fsm_log_counter))+" "+cfsm
 	
+	return cfsm
+
 #
 #  Analysis functions
 ###################################################### 
@@ -364,7 +379,7 @@ def parameters_comparison( originalFSM, newFSM, number_of_episodes, experiments)
 		wis_proportional.append(0.0)
 		
 	for idx,ex in enumerate(experiments): #Go through each Experiment to calculate and collect the values
-		pwis,pwis_den,ppwis,ue = ex.parameters_analysis_importance_sampling(newFSM)
+		pwis,pwis_den,ppwis,ue = ex.parameters_analysis_importance_sampling(originalFSM, newFSM)
 		usefull_exp += ue
 		vpi_part = ex.calculate_vpi_for_experiment()
 		vpi_prop = ex.calculate_proportional_vpi_for_experiment()		
@@ -374,7 +389,7 @@ def parameters_comparison( originalFSM, newFSM, number_of_episodes, experiments)
 			vpi_all[i]    += vpi_part[i]
 			vpi_proportional[i] += vpi_prop[i]
 			wis_proportional[i] += ppwis[i]
-			
+	
 	for i in range(0,number_of_states):
 		ois.append(wis[i]/float(number_of_episodes))
 		vpi_all[i] = vpi_all[i]/float(len(experiments))
@@ -547,8 +562,11 @@ def evaluate_state_removal(original_fsm, state_to_remove, number_of_episodes, ex
 			print("WIS Expected average performance with the proportional reward        : {0}".format(round(average_prop_reward,3)))
 			print("OIS Expected average performance with the proportional reward        : {0}".format(round(average_ord_prop_reward,3)))
 			
-		else :
-			print("\n The pruned FSM performance cannot be estimated:\nThe pruned FSM is too different from the original FSM\n")
+			if(usefull_exp > 0 and usefull_exp < 40):
+				print("\nWARNING : These results are based on a very small fraction of the total experience and they may not be reliable!")
+				
+			if(usefull_exp == 0):
+				print("\nWARNING : State {0} seems to be a key component of the FSM. \n          Removing it may cause the FSM to be disconnected.".format(state_to_remove))
 		
 		return average_original_reward,average_wei_reward,average_prop_reward
 
@@ -574,11 +592,13 @@ def bool_to_string(bool_option):
 		return "No"	
 
 def evaluate_different_parameters(originalFSM, newFSM, number_of_episodes, experiments):
-	vpi_all, ord_is, wei_is, vpi_proportional, wei_is_proportional,usefull_exp,ord_is_proportional = parameters_comparison(fsm_log_counter,fsm_log_counter,number_of_episodes,experiments)
-	print("\n Off-policy analysis of the pruned FSM")
+	
+	print("new FSM :\n{0}".format(print_fsm(newFSM)))
+	
+	vpi_all, ord_is, wei_is, vpi_proportional, wei_is_proportional,usefull_exp,ord_is_proportional = parameters_comparison(originalFSM,newFSM,number_of_episodes,experiments)
+	print("\n Off-policy analysis of the new FSM")
 	print(commandline_separator)	
-	print("State values of the original FSM                             : {0}".format([round(i,4) for i in vpi_all]))	
-	print("States removed by pruning                                    : {0}".format(removed_states))
+	print("State values of the original FSM                             : {0}".format([round(i,4) for i in vpi_all]))		
 	print("Number of episodes contributing to the analysis              : {0}/{1}".format(usefull_exp,number_of_episodes))
 	print("State values after pruning with ordinary importance sampling : {0}".format([round(i,4) for i in ord_is]))
 	print("State values after pruning with weighted importance sampling : {0}".format([round(i,4) for i in wei_is]))
@@ -591,11 +611,11 @@ def evaluate_different_parameters(originalFSM, newFSM, number_of_episodes, exper
 	check = -1	
 	for s in range(0,len(wei_is)):
 		state_contribution = 1.0
-		if vpi_all[s] != 0.0 :
+		if vpi_all[s] != 0.0 :			
 			state_contribution =  wei_is[s]/vpi_all[s]
 			average_wei_reward += average_original_reward * state_contribution
 			#break
-	average_wei_reward = average_wei_reward/(len(wei_is) - 1)		
+	average_wei_reward = average_wei_reward/(len(wei_is))		
 	average_prop_reward = 0.0
 	for s in wei_is_proportional:
 		average_prop_reward += s
@@ -615,7 +635,7 @@ def evaluate_different_parameters(originalFSM, newFSM, number_of_episodes, exper
 			state_contribution =  ord_is[s]/vpi_all[s]
 		average_ord_reward +=  average_original_reward * state_contribution
 	
-	average_ord_reward = average_ord_reward/(len(ord_is) - 1)
+	average_ord_reward = average_ord_reward/(len(ord_is))
 	
 	print("\n Performance estimation")
 	print(commandline_separator)
@@ -624,6 +644,9 @@ def evaluate_different_parameters(originalFSM, newFSM, number_of_episodes, exper
 	print("OIS Expected average performance of the pruned FSM                   : {0}".format(round(average_ord_reward,3)))
 	print("WIS Expected average performance with the proportional reward        : {0}".format(round(average_prop_reward,3)))
 	print("OIS Expected average performance with the proportional reward        : {0}".format(round(average_ord_prop_reward,3)))
+	
+	if(usefull_exp < 40):
+		print("\nWARNING : These results are based on a very small fraction of the total experience and they may not be reliable!")
 	
 	return average_original_reward,average_wei_reward,average_prop_reward		
 

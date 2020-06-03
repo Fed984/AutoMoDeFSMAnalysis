@@ -272,7 +272,7 @@ class AutoMoDeExperiment:
 	# reward calculation for two FSM with identical structure (same states and transitions) but with a different
 	# parameter configuration
 	##
-	def parameters_analysis_importance_sampling(self, new_fsm):
+	def parameters_analysis_importance_sampling(self, old_fsm, new_fsm):
 		timesteps = self.endIdx+1		
 		number_of_states = len(self.vpi) # save the total number of states
 		num_of_robots = float(len(self.logs)) # number of robots or episodes per experiment
@@ -298,13 +298,16 @@ class AutoMoDeExperiment:
 				if not(first_visit_states[state]):
 					first_visit_states[state] = True # if a state does not appear in the history it does not get a reward
 					#accumulated_is[state] = 1.0
-					prob_transition = float(tr_prob[idx]/tr_actives[idx])# probability of the transition from the previous state to the current state
+					#prob_transition = float(tr_prob[idx]/tr_actives[idx])# probability of the transition from the previous state to the current state
 					prob_transition_target = 1.0 # same probability for the target FSM
+					prob_transition = 1.0
 					if(idx > 0):
 						previous_state = episode[0][idx-1] # previous state		
-						next_prob_new = new_fsm[previous_state].prob_of_reaching_state(state, new_fsm,tr_neighbors[idx],tr_ground[idx]) # probability that the target policy transitions from the previous state to the current state	
-				
-					in_episode *=  prob_transition # compounds the probability with the general one
+						prob_transition = old_fsm[previous_state].prob_of_reaching_state(state, new_fsm,tr_neighbors[idx],tr_ground[idx])
+						prob_transition_target = new_fsm[previous_state].prob_of_reaching_state(state, new_fsm,tr_neighbors[idx],tr_ground[idx]) # probability that the target policy transitions from the previous state to the current state
+						#if(previous_state == 0 ):
+						#	print("Transition from {0} to {1} : old probability {2} new probability {3}".format(previous_state,state,prob_transition,prob_transition_target))	
+					in_episode *= prob_transition # compounds the probability with the general one
 					in_episode_pi *= prob_transition_target # compounds the probabilities
 								
 			for s in range(0, number_of_states):	
@@ -317,6 +320,8 @@ class AutoMoDeExperiment:
 				wis_den[s] += (in_episode_pi/in_episode)
 			if(in_episode_pi > 0):
 				usefull_experience += 1
+			if(in_episode_pi/in_episode > 1):
+				print("Strange!")
 
 		return wis,wis_den,pwis,usefull_experience
 	
