@@ -188,6 +188,9 @@ class AutoMoDeExperiment:
 							in_episode *= current_prob #update mu
 							in_episode_pi *= prob_new #update pi					
 							
+			if in_episode == 0:
+				in_episode = 1.0
+	
 			for s in range(0, number_of_states):				
 				if(not(s in states) and first_visit_states[s]):		
 					accumulated_prob[s] += (in_episode_pi/in_episode) *  per_robot_reward # combines the state values per each episode
@@ -248,7 +251,10 @@ class AutoMoDeExperiment:
 							prob_new = new_fsm[prev_state].prob_of_reaching_state(state, new_fsm,tr_neighbors[idx],tr_ground[idx]) # the probability without the deactivated transition
 							in_episode *= current_prob #update mu
 							in_episode_pi *= prob_new #update pi
-			
+		
+			if in_episode == 0:
+				in_episode = 1.0
+	
 			for s in range(0, number_of_states):	
 				if(not(s in states) and first_visit_states[s]):		
 					state_reward = (episode[4][s]/float(timesteps) * per_robot_reward)
