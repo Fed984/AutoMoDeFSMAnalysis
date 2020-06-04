@@ -361,6 +361,27 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 	print("Number of episodes   : {0}".format(number_of_episodes))	
 	return number_of_ticks,number_of_episodes
 
+def compute_state_values(originalFSM, number_of_episodes, experiments):
+	number_of_states = len(originalFSM)
+	vpi_all = [0.0] # the value for each state as estimated using the first visit method 
+	vpi_proportional = [0.0] # In this case the reward for each state is proportional to the percentage of time each state was executed
+	for i in range(1, number_of_states): # Set to 0 for each state
+		vpi_all.append(0.0)
+		vpi_proportional.append(0.0)
+		
+	for idx,ex in enumerate(experiments): #Go through each Experiment to calculate and collect the values
+		vpi_part = ex.calculate_vpi_for_experiment()
+		vpi_prop = ex.calculate_proportional_vpi_for_experiment()		
+		for i in range(0,number_of_states): # Update the values for each state
+			vpi_all[i]    += vpi_part[i]
+			vpi_proportional[i] += vpi_prop[i]
+	
+	for i in range(0,number_of_states):		
+		vpi_all[i] = vpi_all[i]/float(len(experiments))
+		vpi_proportional[i] = vpi_proportional[i]/float(number_of_episodes)				
+	
+	return vpi_all, vpi_proportional
+
 def parameters_comparison( originalFSM, newFSM, number_of_episodes, experiments):
 	number_of_states = len(originalFSM)
 	ois = [] # Contains the ordinary importance sampling for each state
@@ -692,6 +713,7 @@ is_active = False
 pruning = False
 remove_state = False
 parameter_analysis = False 
+rounding = True
 state_to_remove = -1
 fsm_tokenizer.next_token() # token 0 "AutoMoDeLogAnalyzer.py"
 if not(fsm_tokenizer.peek().startswith("-")):
@@ -747,6 +769,9 @@ while(params and fsm_tokenizer.has_more_tokens()):
 		fsm_tokenizer.next_token()
 		newfsm = load_FSM(fsm_tokenizer,"--newfsm-config")
 		parameter_analysis = True
+	elif(tok == "--no-rounding" or tok == "-nr"):
+		fsm_tokenizer.next_token()
+		rounding = False
 	else:
 		fsm_tokenizer.next_token()
 
@@ -819,8 +844,16 @@ print("Total number of ticks       : {0}".format(number_of_ticks))
 print("Total number of states      : {0}".format(nstates))
 for state in fsm_log_counter:
 	state_load = round(float(state.get_counter())/float(number_of_ticks)*100,2)
-	print("Sate {0} active for {1} ticks or {2}% ".format(state.get_id(),state.get_counter(),state_load)+str(state.get_transition_counters()))
-	
+	print("Sate {0} active for           : {1} ticks or {2}% ".format(state.get_id(),state.get_counter(),state_load)+str(state.get_transition_counters()))
+
+vpi,vpip = compute_state_values(fsm_log_counter, number_of_episodes, experiments)
+
+if(rounding):
+	vpi = [round(i,4) for i in vpi]
+	vpip = [round(i,4) for i in vpip]
+
+print("State values                : {0}".format(vpi))
+print("State values proportional   : {0}".format(vpip))	
 #for idx,e in enumerate(experiments):
 #	print("Exp {0} #episodes : {1}".format(idx, len(e.logs)) )
 

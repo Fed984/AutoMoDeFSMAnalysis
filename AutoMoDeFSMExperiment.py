@@ -312,7 +312,7 @@ class AutoMoDeExperiment:
 								
 			for s in range(0, number_of_states):	
 				if first_visit_states[s]:		
-					state_proportional_reward = (episode[4][s]/float(timesteps) * per_robot_reward)
+					state_proportional_reward = (episode[4][s]/float(timesteps) * per_robot_reward)	
 					episode_val = (in_episode_pi/in_episode) *  state_proportional_reward			
 					pwis[s] += episode_val # combines the state values per each episode
 					wis[s]  += (in_episode_pi/in_episode) *  per_robot_reward # combines the state values per 
@@ -320,8 +320,6 @@ class AutoMoDeExperiment:
 				wis_den[s] += (in_episode_pi/in_episode)
 			if(in_episode_pi > 0):
 				usefull_experience += 1
-			if(in_episode_pi/in_episode > 1):
-				print("Strange!")
 
 		return wis,wis_den,pwis,usefull_experience
 	
