@@ -309,9 +309,10 @@ class AutoMoDeExperiment:
 					prob_transition = 1.0
 					if(idx > 0):
 						previous_state = episode[0][idx-1] # previous state		
-						prob_transition = old_fsm[previous_state].prob_of_reaching_state(state, new_fsm,tr_neighbors[idx],tr_ground[idx])
+						#prob_transition = old_fsm[previous_state].prob_of_reaching_state(state, new_fsm,tr_neighbors[idx],tr_ground[idx])
+						prob_transition = float(tr_prob[idx]/tr_actives[idx]) # the measured probability of coming to the current state
 						prob_transition_target = new_fsm[previous_state].prob_of_reaching_state(state, new_fsm,tr_neighbors[idx],tr_ground[idx]) # probability that the target policy transitions from the previous state to the current state
-						#if(previous_state == 0 ):
+						#if(previous_state == 2 ):
 						#	print("Transition from {0} to {1} : old probability {2} new probability {3}".format(previous_state,state,prob_transition,prob_transition_target))	
 					in_episode *= prob_transition # compounds the probability with the general one
 					in_episode_pi *= prob_transition_target # compounds the probabilities
