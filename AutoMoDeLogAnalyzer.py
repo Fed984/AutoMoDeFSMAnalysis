@@ -625,6 +625,7 @@ def evaluate_different_parameters(originalFSM, newFSM, number_of_episodes, exper
 	print("State values after pruning with weighted importance sampling : {0}".format([round(i,4) for i in wei_is]))
 	print("State values using proportional reward calculation           : {0}".format([round(i,4) for i in vpi_proportional]))
 	print("State values after pruning with weighted importance sampling : {0}".format([round(i,4) for i in wei_is_proportional]))
+	print("State values after pruning with ordinary importance sampling : {0}".format([round(i,4) for i in ord_is_proportional]))
 	
 	average_original_reward = vpi_all[0] * float(number_of_episodes/len(experiments))
 	

@@ -309,25 +309,27 @@ class AutoMoDeExperiment:
 					prob_transition = 1.0
 					if(idx > 0):
 						previous_state = episode[0][idx-1] # previous state		
-						#prob_transition = old_fsm[previous_state].prob_of_reaching_state(state, new_fsm,tr_neighbors[idx],tr_ground[idx])
-						prob_transition = float(tr_prob[idx]/tr_actives[idx]) # the measured probability of coming to the current state
+						prob_transition = old_fsm[previous_state].prob_of_reaching_state(state, new_fsm,tr_neighbors[idx],tr_ground[idx])
+						#prob_transition2 = float(tr_prob[idx]/tr_actives[idx]) # the measured probability of coming to the current state
 						prob_transition_target = new_fsm[previous_state].prob_of_reaching_state(state, new_fsm,tr_neighbors[idx],tr_ground[idx]) # probability that the target policy transitions from the previous state to the current state
 						#if(previous_state == 2 ):
-						#	print("Transition from {0} to {1} : old probability {2} new probability {3}".format(previous_state,state,prob_transition,prob_transition_target))	
+						#print("Transition from {0} to {1} : old probability {2} - {3} new probability  {4}".format(previous_state,state,prob_transition,prob_transition2,prob_transition_target))	
 					in_episode *= prob_transition # compounds the probability with the general one
 					in_episode_pi *= prob_transition_target # compounds the probabilities
 								
-			for s in range(0, number_of_states):	
+			for s in range(0, number_of_states):
+				is_coef = in_episode_pi/in_episode	
 				if first_visit_states[s]:		
 					state_proportional_reward = (episode[4][s]/float(timesteps) * per_robot_reward)	
-					episode_val = (in_episode_pi/in_episode) *  state_proportional_reward			
+					episode_val = is_coef *  state_proportional_reward			
 					pwis[s] += episode_val # combines the state values per each episode
-					wis[s]  += (in_episode_pi/in_episode) *  per_robot_reward # combines the state values per 
+					wis[s]  += is_coef *  per_robot_reward # combines the state values per 
+					#print("Episode end state {0} : wis {1} IS coef {2} in_pisode {3} in_episode_pi {4}".format(s,wis[s],is_coef,in_episode, in_episode_pi))
 						
-				wis_den[s] += (in_episode_pi/in_episode)
+				wis_den[s] += is_coef
 			if(in_episode_pi > 0):
 				usefull_experience += 1
-
+		
 		return wis,wis_den,pwis,usefull_experience
 	
 	
