@@ -634,7 +634,7 @@ def evaluate_different_parameters(originalFSM, newFSM, number_of_episodes, exper
 	for s in range(0,len(wei_is)):
 		state_contribution = 1.0
 		if vpi_all[s] != 0.0 :			
-			state_contribution =  vpi_all[s]/wei_is[s] # instead of wei_is[s]/vpi_all[s]
+			state_contribution =  vpi_all[s]/wei_is[s]# wei_is[s]/vpi_all[s] # old test vpi_all[s]/wei_is[s]
 			average_wei_reward += average_original_reward * state_contribution
 			#break
 	average_wei_reward = average_wei_reward/(len(wei_is))		
