@@ -312,12 +312,11 @@ class AutoMoDeExperiment:
 				if(idx > 0):
 					previous_state = episode[0][idx-1] # previous state		
 					prob_transition = old_fsm[previous_state].prob_of_reaching_state(state, old_fsm,tr_neighbors[idx],tr_ground[idx])
-					prob_transition2 = float(tr_prob[idx]/tr_actives[idx]) # the measured probability of coming to the current state
+					#prob_transition2 = float(tr_prob[idx]/tr_actives[idx]) # the measured probability of coming to the current state
 					prob_transition_target = new_fsm[previous_state].prob_of_reaching_state(state, new_fsm,tr_neighbors[idx],tr_ground[idx]) # probability that the target policy transitions from the previous state to the current state
-					#print("Transition from {0} to {1} : old probability {2} - {3} new probability  {4}".format(previous_state,state,prob_transition,prob_transition2,prob_transition_target))						
-						
+					#print("Transition from {0} to {1} condition {5} : old probability {2} - {3} new probability  {4}".format(previous_state,state,prob_transition,prob_transition2,prob_transition_target,episode[1][idx]))												
 				if prob_transition != prob_transition_target:					
-					is_coef = is_coef * mpfr(prob_transition/prob_transition_target)
+					is_coef = is_coef * mpfr(prob_transition_target)/(prob_transition)
 					#print("is_coef : {0}".format(is_coef))			
 								
 			for s in range(0, number_of_states):				
@@ -326,7 +325,7 @@ class AutoMoDeExperiment:
 					episode_val = is_coef *  state_proportional_reward			
 					pwis[s] += episode_val # combines the state values per each episode
 					wis[s]  += is_coef *  per_robot_reward # combines the state values per 
-					#print("Episode end state {0} : wis {1} IS coef {2} in_pisode {3} in_episode_pi {4}".format(s,wis[s],is_coef,in_episode, in_episode_pi))
+					#print("Episode end state {0} : wis {1} IS coef {2} ".format(s,wis[s],is_coef))
 						
 				wis_den[s] += is_coef
 			#if(in_episode_pi > 0):

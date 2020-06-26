@@ -617,6 +617,8 @@ def evaluate_different_parameters(originalFSM, newFSM, number_of_episodes, exper
 	print("new FSM :\n{0}".format(print_fsm(newFSM)))
 	
 	vpi_all, ord_is, wei_is, vpi_proportional, wei_is_proportional,usefull_exp,ord_is_proportional = parameters_comparison(originalFSM,newFSM,number_of_episodes,experiments)
+	#print("Values from parameters_comparison vpi_all {0} ord_is {1} wei_is {2} vpi_proportional {3}wei_is_proportional {4} usefull_exp {5} ord_is_proportional {6}".format(vpi_all, ord_is, wei_is, vpi_proportional, wei_is_proportional,usefull_exp,ord_is_proportional))
+	
 	print("\n Off-policy analysis of the new FSM")
 	print(commandline_separator)	
 	print("State values of the original FSM                             : {0}".format([round(i,4) for i in vpi_all]))		
@@ -634,7 +636,7 @@ def evaluate_different_parameters(originalFSM, newFSM, number_of_episodes, exper
 	for s in range(0,len(wei_is)):
 		state_contribution = 1.0
 		if vpi_all[s] != 0.0 :			
-			state_contribution =  vpi_all[s]/wei_is[s]# wei_is[s]/vpi_all[s] # old test vpi_all[s]/wei_is[s]
+			state_contribution =  wei_is[s]/vpi_all[s] # old test vpi_all[s]/wei_is[s]
 			average_wei_reward += average_original_reward * state_contribution
 			#break
 	average_wei_reward = average_wei_reward/(len(wei_is))		
