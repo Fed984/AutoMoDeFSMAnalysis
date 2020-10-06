@@ -312,10 +312,13 @@ class AutoMoDeExperiment:
 				if(idx > 0):
 					previous_state = episode[0][idx-1] # previous state		
 					prob_transition = old_fsm[previous_state].prob_of_reaching_state(state, old_fsm,tr_neighbors[idx],tr_ground[idx])
-					#prob_transition2 = float(tr_prob[idx]/tr_actives[idx]) # the measured probability of coming to the current state
+					#prob_transition_p = old_fsm[previous_state].get_transition_probability(episode[1][idx],tr_neighbors[idx],tr_ground[idx])/tr_actives[idx]
+					#prob_transition = float(tr_prob[idx]/tr_actives[idx]) # the measured probability of coming to the current state
 					prob_transition_target = new_fsm[previous_state].prob_of_reaching_state(state, new_fsm,tr_neighbors[idx],tr_ground[idx]) # probability that the target policy transitions from the previous state to the current state
-					#print("Transition from {0} to {1} condition {5} : old probability {2} - {3} new probability  {4}".format(previous_state,state,prob_transition,prob_transition2,prob_transition_target,episode[1][idx]))												
-				if prob_transition != prob_transition_target:					
+					#prob_transition_target_p = new_fsm[previous_state].get_transition_probability(episode[1][idx],tr_neighbors[idx],tr_ground[idx])/tr_actives[idx]
+																	
+				if prob_transition != prob_transition_target:	
+					#print("Transition from {0} to {1} condition {2} : old probability {3} ( {4} ) / new probability  {5} ( {6} )".format(previous_state,state,episode[1][idx],prob_transition,prob_transition_p,prob_transition_target,prob_transition_target_p))				
 					is_coef = is_coef * mpfr(prob_transition_target)/(prob_transition)
 					#print("is_coef : {0}".format(is_coef))			
 								
@@ -332,6 +335,3 @@ class AutoMoDeExperiment:
 			usefull_experience += 1
 		
 		return wis,wis_den,pwis,usefull_experience
-	
-	
-		

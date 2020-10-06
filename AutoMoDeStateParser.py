@@ -196,7 +196,7 @@ class AutoMoDeFSMState:
 			#print("State {0} Transition {1} type 1 -> prob {2}".format(self.id, transition,prob))
 		elif type == 2 and ( ground_sensor < whiteGroundThreshold or ground_sensor < 0) :	
 			prob = 0.0
-			#print("State {0} Transition {1} type 2 -> prob {2}".format(self.id, transition,prob))
+			#print("State {0} Transition {1} type 2 -> prob {2}".format(self.id, transition,prob))q
 		elif type == 3 :
 			prob = 1.0/(1.0 + math.exp(self.transition_w[transition]*(prob-num_neighbors)))
 			#print("State {0} Transition {1} type 3 -> prob {2}".format(self.id, transition,prob))
@@ -205,7 +205,7 @@ class AutoMoDeFSMState:
 			#if(self.id == 0):
 			#print("State {0} Transition {1} type 4 -> prob {2} [ p {3} | w {4} | n {5}]".format(self.id, transition,prob,self.transition_p[transition],self.transition_w[transition],num_neighbors))		
 		#if prob == 0:# and transition == 0:
-		#	print("State {0} Transition {1} type {2} ground {3} neighbors {4} P {5} -> prob {6}".format(self.id, transition,type_name[type],ground_sensor,num_neighbors,self.transition_p[transition],prob))
+			#print("State {0} Transition {1} type {2} ground {3} neighbors {4} P {5} -> prob {6}".format(self.id, transition,type_name[type],ground_sensor,num_neighbors,self.transition_p[transition],prob))
 		return prob 
 	
 	def prob_of_reaching_state(self, target, states, num_neighbors=0, ground_sensor=-1):		
