@@ -140,7 +140,7 @@ class AutoMoDeExperiment:
 		#accumulated_prob = [i/float(len(self.logs)) for i in accumulated_prob]		
 		return accumulated_prob
 	
-	# Calculates the state values of the new FSM using the ordinary importance sampling
+	# Calculates the state values of the new FSM using weighted importance sampling
 	def calculate_weighted_is(self,states, new_fsm):		
 		number_of_states = len(self.vpi) # save the total number of states
 		num_of_robots = float(len(self.logs)) # number of robots or episodes per experiment
@@ -208,7 +208,7 @@ class AutoMoDeExperiment:
 		
 		return accumulated_prob,accumulated_is,usefull_experience
 	
-	# Calculates the state values of the new FSM using the ordinary importance sampling
+	# Calculates the state values of the new FSM using the ordinary and weighted importance sampling with proportional reward
 	def calculate_proportional_weighted_is(self,states, new_fsm):		
 		timesteps = self.endIdx+1		
 		number_of_states = len(self.vpi) # save the total number of states
