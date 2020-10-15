@@ -58,7 +58,7 @@ class AutoMoDeFSMState:
 					self.transition_type.append(ttype)
 				elif(param.startswith("--w")):
 					wparam = float(transition_parameters[ind+1])
-					self.transition_w[-1] = wparam				
+					self.transition_w[-1] = wparam
 	
 	def clone(self, fsmstate_to_clone):
 		self.id = fsmstate_to_clone.id  # the state id (0,1,2...)
