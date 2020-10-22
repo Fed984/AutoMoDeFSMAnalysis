@@ -1,0 +1,24 @@
+--fsm-config 455   --nstates 5 --s0 4 --att0 4.47 --n0 3 --n0x0 2 --c0x0 1 --p0x0 0.37 --n0x1 0 --c0x1 1 --p0x1 0.83 --n0x2 0 --c0x2 0 --p0x2 0.6 --s1 0 --rwm1 10 --n1 3 --n1x0 3 --c1x0 1 --p1x0 0.75 --n1x1 0 --c1x1 2 --p1x1 0.34 --n1x2 1 --c1x2 3 --p1x2 8 --w1x2 18.5 --s2 5 --rep2 1.34 --n2 1 --n2x0 1 --c2x0 4 --p2x0 4 --w2x0 12.36 --s3 1 --n3 3 --n3x0 0 --c3x0 5 --p3x0 0.86 --n3x1 0 --c3x1 5 --p3x1 0.37 --n3x2 3 --c3x2 2 --p3x2 0.85 --s4 0 --rwm4 81 --n4 1 --n4x0 1 --c4x0 4 --p4x0 4 --w4x0 15.72
+[INFO] Loaded library "/home/fpagnozzi/argos3-dist/lib/argos3/libargos3_demiurge_epuck_dao.so"
+[INFO] Loaded library "/home/fpagnozzi/argos3-dist/lib/argos3/libargos3_demiurge_loop_functions.so"
+[INFO] Loaded library "/home/fpagnozzi/argos3-dist/lib/argos3/libargos3plugin_simulator_media.so"
+[INFO] Loaded library "/home/fpagnozzi/argos3-dist/lib/argos3/libargos3core_simulator.so"
+[INFO] Loaded library "/home/fpagnozzi/argos3-dist/lib/argos3/libargos3plugin_simulator_entities.so"
+[INFO] Loaded library "/home/fpagnozzi/argos3-dist/lib/argos3/libargos3plugin_simulator_dynamics2d.so"
+[INFO] Loaded library "/home/fpagnozzi/argos3-dist/lib/argos3/libargos3plugin_simulator_footbot.so"
+[INFO] Loaded library "/home/fpagnozzi/argos3-dist/lib/argos3/libargos3plugin_simulator_genericrobot.so"
+[INFO] Loaded library "/home/fpagnozzi/argos3-dist/lib/argos3/libargos3plugin_simulator_epuck.so"
+[INFO] Loaded library "/home/fpagnozzi/argos3-dist/lib/argos3/libargos3plugin_simulator_spiri.so"
+[INFO] Loaded library "/home/fpagnozzi/argos3-dist/lib/argos3/libargos3plugin_simulator_pointmass3d.so"
+[INFO] Loaded library "/home/fpagnozzi/argos3-dist/lib/argos3/libargos3plugin_simulator_eyebot.so"
+[INFO] Not using threads
+[INFO] Using random seed = 1001343117
+[INFO] Using simulation clock tick = 0.1
+[INFO] Total experiment length in clock ticks = 2500
+[INFO] Loaded library "/home/fpagnozzi/demiurge/AutoMoDe-private/build/src/libautomode.so"
+[INFO] Loaded library "/home/fpagnozzi/demiurge/experiments-loop-functions/build/loop-functions/vanilla/libforaging_loopfunc.so"
+[INFO] The physics engine "dyn2d" will perform 10 iterations per tick (dt = 0.01 sec)
+[INFO] No visualization selected.
+Score 44
+--t 0 --s0 4 --n 0 --f 0.5 
+--t 1 --s1 0 --c1 1 1 0.83 --a 1 --n 0 --f 0.5 

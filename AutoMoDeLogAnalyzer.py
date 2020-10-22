@@ -622,8 +622,8 @@ def evaluate_different_parameters_discount_factor(originalFSM, newFSM, number_of
 	overall_discounted_state_value = np.zeros(nstates)
 	overall_discounted_proportional_state_value = np.zeros(nstates)
 
-	first_visit = False
-	discount_factor = 0.99
+	first_visit = True
+	discount_factor = 0.98
 
 	for experiment in experiments:
 		weighted_is_state_estimation, ordinary_is_estimation, proportional_weighted_is_state_estimation, proportional_ordinary_is_estimation = experiment.estimateValueStatesUsingImportanceSampling(originalFSM, newFSM, number_of_episodes, experiments, first_visit, discount_factor)
@@ -657,7 +657,7 @@ def evaluate_different_parameters_discount_factor(originalFSM, newFSM, number_of
 	print("Proportional weighted state estimation           : {0}".format([round(i,4) for i in proportional_weighted_state_estimation]))
 	print("Proportional ordinary state estimation           : {0}".format([round(i,4) for i in proportional_original_state_estimation]))
 
-	print_performance_estimation(overall_discounted_state_value, weighted_state_estimation, proportional_weighted_state_estimation, proportional_original_state_estimation, original_state_estimation)
+	print_performance_estimation(overall_discounted_state_value, weighted_state_estimation, proportional_weighted_state_estimation, proportional_original_state_estimation, original_state_estimation, "Discounted")
 
 def evaluate_different_parameters(originalFSM, newFSM, number_of_episodes, experiments):
 	
@@ -681,7 +681,7 @@ def evaluate_different_parameters(originalFSM, newFSM, number_of_episodes, exper
 	if(usefull_exp < 40):
 		print("\nWARNING : These results are based on a very small fraction of the total experience and they may not be reliable!")
 
-def print_performance_estimation(vpi_all, wei_is, wei_is_proportional, ord_is_proportional, ord_is):
+def print_performance_estimation(vpi_all, wei_is, wei_is_proportional, ord_is_proportional, ord_is, prefix=""):
 	average_original_reward = 0
 
 	for experiment in experiments:
@@ -724,11 +724,11 @@ def print_performance_estimation(vpi_all, wei_is, wei_is_proportional, ord_is_pr
 	
 	print("\n Performance estimation")
 	print(commandline_separator)
-	print("Average performance of the original FSM                              : {0}".format(round(average_original_reward,3)))
-	print("WIS Expected average performance of the pruned FSM                   : {0}".format(round(average_wei_reward,3)))
-	print("OIS Expected average performance of the pruned FSM                   : {0}".format(round(average_ord_reward,3)))
-	print("WIS Expected average performance with the proportional reward        : {0}".format(round(average_prop_reward,3)))
-	print("OIS Expected average performance with the proportional reward        : {0}".format(round(average_ord_prop_reward,3)))
+	print( prefix + " Average performance of the original FSM                              : {0}".format(round(average_original_reward,3)))
+	print( prefix + " WIS Expected average performance of the pruned FSM                   : {0}".format(round(average_wei_reward,3)))
+	print( prefix + " OIS Expected average performance of the pruned FSM                   : {0}".format(round(average_ord_reward,3)))
+	print( prefix + " WIS Expected average performance with the proportional reward        : {0}".format(round(average_prop_reward,3)))
+	print( prefix + " OIS Expected average performance with the proportional reward        : {0}".format(round(average_ord_prop_reward,3)))
 
 def load_FSM(fsm_tokenizer, param_name="--fsm-config"):
 	if(fsm_tokenizer.peek() == param_name):
