@@ -1,0 +1,200 @@
+<?xml version="1.0" ?>
+<argos-configuration>
+  <!-- ************* -->
+  <!-- * Framework * -->
+  <!-- ************* -->
+  <framework>
+    <experiment length="250"
+                ticks_per_second="10" random_seed="1"/>
+  </framework>
+
+  <!-- ****************** -->
+  <!-- * Loop functions * -->
+  <!-- ****************** -->
+  <loop_functions library="../../experiments-loop-functions/build/loop-functions/vanilla/libforaging_loopfunc.so" 
+   label="foraging_loop_functions">
+    <params dist_radius="1.2" number_robots="20"/>
+  </loop_functions>
+
+  <!-- *************** -->
+  <!-- * Controllers * -->
+  <!-- *************** -->
+  <controllers>
+    <!-- TRANSMITTER -->
+    <automode_controller id="automode"
+	    library="../../ARGoS3-AutoMoDe/build/src/libautomode.so">
+      <actuators>
+        <epuck_wheels implementation="default" noise_std_dev="0.05"/>
+        <epuck_rgb_leds implementation="default" medium="leds"/>
+        <epuck_range_and_bearing implementation="medium" medium="rab" data_size="4" range="0.7"/>
+      </actuators>
+      <sensors>
+        <epuck_proximity implementation="default" show_rays="false" noise_level="0.05" calibrated="true"/>
+        <epuck_range_and_bearing implementation="medium" medium="rab" data_size="4" loss_probability="0.85" calibrated="true"/>
+        <epuck_light implementation="default" show_rays="false" noise_level="0.05" calibrated="true"/>
+	<epuck_ground implementation="rot_z_only" noise_level="0.05" calibrated="true"/>
+	<epuck_omnidirectional_camera implementation="rot_z_only" medium="leds" show_rays="false"/>
+      </sensors>
+    <params fsm-config="--nstates 1 --s0 1" />
+  </automode_controller>
+  </controllers>
+
+  <!-- ********* -->
+  <!-- * Arena * -->
+  <!-- ********* -->
+  <arena size="10, 10, 2" center="0,0,0">
+
+  <!-- Change the floor here -->
+  <floor id="floor" source="loop_functions" pixels_per_meter="300"/>
+
+  <!-- Change the light here -->
+  <light id="light" position="0,-1.25,0.75" orientation="0,0,0" color="yellow" intensity="5.0" medium="leds"/>
+
+  <!--Dodecagonal arena with side of length .66-->
+  <box id="wall_1" size="0.01,.66,0.08" movable="false">
+    <body position="-1.231,0,0" orientation="0,0,0"/>
+  </box>
+  <box id="wall_2" size="0.01,.66,0.08" movable="false">
+    <body position="1.231,0,0" orientation="0,0,0"/>
+  </box>
+  <box id="wall_3" size="0.01,.66,0.08" movable="false">
+    <body position="0,1.231,0" orientation="90,0,0"/>
+  </box>
+  <box id="wall_4" size="0.01,.66,0.08" movable="false">
+    <body position="0,-1.231,0" orientation="90,0,0"/>
+  </box>
+  <box id="wall_5" size="0.01,.66,0.08" movable="false">
+    <body position="-.615,-1.066,0" orientation="60,0,0"/>
+  </box>
+  <box id="wall_6" size="0.01,.66,0.08" movable="false">
+    <body position="-1.066,-.615,0" orientation="30,0,0"/>
+  </box>
+  <box id="wall_7" size="0.01,.66,0.08" movable="false">
+    <body position=".615,1.066,0" orientation="60,0,0"/>
+  </box>
+  <box id="wall_8" size="0.01,.66,0.08" movable="false">
+    <body position="1.066,.615,0" orientation="30,0,0"/>
+  </box>
+  <box id="wall_9" size="0.01,.66,0.08" movable="false">
+    <body position="-.615,1.066,0" orientation="-60,0,0"/>
+  </box>
+  <box id="wall_10" size="0.01,.66,0.08" movable="false">
+    <body position="-1.066,.615,0" orientation="-30,0,0"/>
+  </box>
+  <box id="wall_11" size="0.01,.66,0.08" movable="false">
+    <body position=".615,-1.066,0" orientation="-60,0,0"/>
+  </box>
+  <box id="wall_12" size="0.01,.66,0.08" movable="false">
+    <body position="1.066,-.615,0" orientation="-30,0,0"/>
+  </box>
+
+  <!-- ********** -->
+  <!-- * E-Puck * -->
+  <!-- ********** -->
+  <!-- The epucks are distributed by the loop functions. -->
+  <e-puck id="epuck01_30">
+    <body orientation="0,0,0" position="0,-0.4,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck02_40">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck03_50">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck04_51">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck05_55">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck06_46">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck07_34">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck08_35">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck09_36">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck10_57">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck11_44">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck12_48">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck13_61">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck14_28">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck15_32">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck16_33">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck17_39">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck18_42">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck19_47">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  <e-puck id="epuck20_53">
+    <body orientation="0,0,0" position="0.4,-0.6,0" />
+    <controller config="automode" />
+  </e-puck>
+  </arena>
+
+  <!-- ******************* -->
+  <!-- * Physics engines * -->
+  <!-- ******************* -->
+  <physics_engines>
+    <dynamics2d id="dyn2d" />
+  </physics_engines>
+
+  <!-- ********* -->
+  <!-- * Media * -->
+  <!-- ********* -->
+  <media>
+    <led id="leds" grid_size="1,1,1"/>
+    <range_and_bearing id="ircom"/>
+    <range_and_bearing id="rab"/>
+  </media>
+
+  <!-- ***************** -->
+  <!-- * Visualization * -->
+  <!-- ***************** -->
+  <visualization>
+
+  </visualization>
+
+</argos-configuration>

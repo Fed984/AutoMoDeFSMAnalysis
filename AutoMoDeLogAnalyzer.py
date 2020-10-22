@@ -676,7 +676,7 @@ def evaluate_different_parameters(originalFSM, newFSM, number_of_episodes, exper
 	print("State values after pruning with weighted importance sampling : {0}".format([round(i,4) for i in wei_is_proportional]))
 	print("State values after pruning with ordinary importance sampling : {0}".format([round(i,4) for i in ord_is_proportional]))
 
-	print_performance_estimation(vpi_all, wei_is, wei_is_proportional, ord_is_proportional, ord_is)
+	print_performance_estimation(vpi_all, wei_is, wei_is_proportional, ord_is_proportional, ord_is, "Nondiscounted")
 	
 	if(usefull_exp < 40):
 		print("\nWARNING : These results are based on a very small fraction of the total experience and they may not be reliable!")
