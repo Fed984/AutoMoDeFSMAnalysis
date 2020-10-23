@@ -233,7 +233,7 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 	cstate = 0
 	#print("Analyzing log file   :")	
 	recording_exp = False	
-	exp_states = [0]
+	exp_states = [0] 
 	exp_transitions = [0]
 	exp_transitions_probabilities = [1]
 	exp_active_transitions = [1]
@@ -466,7 +466,7 @@ def importance_sampling_analysis(fsm_log_counter, removed_states, number_of_epis
 			wei_is_proportional[i] += partial_p_wei_is[i]
 			wei_is_den_proportional[i] += partial_p_wei_is_den[i]
 		
-	is_ratio = is_ratio/float(number_of_episodes)
+#	is_ratio = is_ratio/float(number_of_episodes)
 #	ord_is = [ord_is[i]/float(number_of_episodes) for i in range(0,number_of_states)]
 	
 	for i in range(0,number_of_states):

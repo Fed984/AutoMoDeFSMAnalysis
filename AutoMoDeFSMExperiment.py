@@ -310,17 +310,23 @@ class AutoMoDeExperiment:
 				prob_transition_target = 1.0 # same probability for the target FSM
 				prob_transition = 1.0
 				if(idx > 0):
-					previous_state = episode[0][idx-1] # previous state		
+					# idx-1 idx
+					#   0    1 3 1 0 2 
+					#            GT*gamma*gamma  GT*gamma  GT  
+					previous_state = episode[0][idx-1] # previous state	
+					# transition probability behavior FSM	
 					prob_transition = old_fsm[previous_state].prob_of_reaching_state(state, old_fsm,tr_neighbors[idx],tr_ground[idx])
 					#prob_transition_p = old_fsm[previous_state].get_transition_probability(episode[1][idx],tr_neighbors[idx],tr_ground[idx])/tr_actives[idx]
 					#prob_transition = float(tr_prob[idx]/tr_actives[idx]) # the measured probability of coming to the current state
+					# transition probability target FSM
 					prob_transition_target = new_fsm[previous_state].prob_of_reaching_state(state, new_fsm,tr_neighbors[idx],tr_ground[idx]) # probability that the target policy transitions from the previous state to the current state
 					#prob_transition_target_p = new_fsm[previous_state].get_transition_probability(episode[1][idx],tr_neighbors[idx],tr_ground[idx])/tr_actives[idx]
 																	
 				if prob_transition != prob_transition_target:	
 					#print("Transition from {0} to {1} condition {2} : old probability {3} ( {4} ) / new probability  {5} ( {6} )".format(previous_state,state,episode[1][idx],prob_transition,prob_transition_p,prob_transition_target,prob_transition_target_p))				
 					is_coef = is_coef * mpfr(prob_transition_target)/(prob_transition)
-					#print("is_coef : {0}".format(is_coef))			
+					#print("is_coef : {0}".format(is_coef))	
+							
 								
 			for s in range(0, number_of_states):				
 				if first_visit_states[s]:		
@@ -329,8 +335,9 @@ class AutoMoDeExperiment:
 					pwis[s] += episode_val # combines the state values per each episode
 					wis[s]  += is_coef *  per_robot_reward # combines the state values per 
 					#print("Episode end state {0} : wis {1} IS coef {2} ".format(s,wis[s],is_coef))
-						
+					
 				wis_den[s] += is_coef
+		
 			#if(in_episode_pi > 0):
 			usefull_experience += 1
 		
