@@ -38,7 +38,8 @@ class AutoMoDeExperiment:
 		self.metrics = []
 		self.startIdx = 0
 		self.endIdx = 0
-		self.vpi = []		
+		self.vpi = []	
+		self.objFun = []	
 		#self.fsm = fsm
 	
 	def set_result(self, result):
@@ -61,7 +62,10 @@ class AutoMoDeExperiment:
 	
 	def set_vpi(self, vpistates):
 		self.vpi = vpistates
-	
+
+	def set_objFun(self, objfun):
+		self.objFun = objfun
+
 	def calculate_vpi_for_experiment(self):
 		vpi = []
 		num_of_robots = float(len(self.logs))		
@@ -438,6 +442,7 @@ class AutoMoDeExperiment:
 
 					#prob_transition_p = old_fsm[previous_state].get_transition_probability(episode[1][idx],tr_neighbors[idx],tr_ground[idx])/tr_actives[idx]
 					#prob_transition = float(tr_prob[idx]/tr_actives[idx]) # the measured probability of coming to the current state
+					# transition probability target FSM
 					prob_transition_target = new_fsm[previous_state].prob_of_reaching_state(state, new_fsm,tr_neighbors[idx],tr_ground[idx]) # probability that the target policy transitions from the previous state to the current state
 					#prob_transition_target_p = new_fsm[previous_state].get_transition_probability(episode[1][idx],tr_neighbors[idx],tr_ground[idx])/tr_actives[idx]
 																	
@@ -453,8 +458,9 @@ class AutoMoDeExperiment:
 					pwis[s] += episode_val # combines the state values per each episode
 					wis[s]  += is_coef *  per_robot_reward # combines the state values per 
 					#print("Episode end state {0} : wis {1} IS coef {2} ".format(s,wis[s],is_coef))
-						
+					
 				wis_den[s] += is_coef
+		
 			#if(in_episode_pi > 0):
 			usefull_experience += 1
 		

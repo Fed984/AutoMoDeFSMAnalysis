@@ -234,13 +234,14 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 	cstate = 0
 	#print("Analyzing log file   :")	
 	recording_exp = False	
-	exp_states = [0]
+	exp_states = [0] 
 	exp_transitions = [0]
 	exp_transitions_probabilities = [1]
 	exp_active_transitions = [1]
 	exp_state_contribution = [0 for i in range(0,number_of_states)]
 	exp_ground = [0]
 	exp_neighbors = [0]
+	exp_objfun = []
 	cscore = 0
 	r_recording = False
 	vpi_overall = [0.0 for i in range(0,number_of_states)]
@@ -248,7 +249,13 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 	vpi_states = [0 for i in range(0,number_of_states)]	
 	episode_tick = 0
 	for line in tqdm(Lines,desc="Analyzing log file   "):
-		if(not(recording_exp) and line.startswith("Score ")):	  # Starting of the experiment		
+		if(line.startswith("Obj ")):
+			t = Tokenizer.Tokenizer(line) # splitting the Obj trace in tokens
+			if(t.seek("--o") > 0):
+				t.next_token()
+				exp_objfun.append(int(t.next_token()))
+					
+		elif(not(recording_exp) and line.startswith("Score ")):	  # Starting of the experiment		
 					cscore = float(line.split()[1])   # Getting the score 
 					exp = AutoMoDeFSMExperiment.AutoMoDeExperiment() #Initializing the experiment object	
 					exp.set_result(cscore)
@@ -359,7 +366,21 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 		experiments.append(exp)   # save experiment
 		
 	f.close()
+	
+	#Initialize objfun if there are no logs of the objective function
+	if(len(exp_objfun) == 0 and len(experiments) > 0):		
+		ticks_per_episode = experiments[0].endIdx
+		for i in range(0,ticks_per_episode):
+			exp_objfun.append(0)
+		
+		exp_objfun.append(cscore)
+	
+	for e in experiments:
+		e.set_objFun(exp_objfun)
+	
 	print("Number of episodes   : {0}".format(number_of_episodes))	
+	#print("Objfun lenght : {0}".format(len(exp_objfun)))
+	#print("Objfun : {0}".format(exp_objfun))
 	return number_of_ticks,number_of_episodes
 
 def compute_state_values(originalFSM, number_of_episodes, experiments):
@@ -467,7 +488,7 @@ def importance_sampling_analysis(fsm_log_counter, removed_states, number_of_epis
 			wei_is_proportional[i] += partial_p_wei_is[i]
 			wei_is_den_proportional[i] += partial_p_wei_is_den[i]
 		
-	is_ratio = is_ratio/float(number_of_episodes)
+#	is_ratio = is_ratio/float(number_of_episodes)
 #	ord_is = [ord_is[i]/float(number_of_episodes) for i in range(0,number_of_states)]
 	
 	for i in range(0,number_of_states):
