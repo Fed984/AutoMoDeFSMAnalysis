@@ -36,7 +36,8 @@ class AutoMoDeExperiment:
 		self.metrics = []
 		self.startIdx = 0
 		self.endIdx = 0
-		self.vpi = []		
+		self.vpi = []	
+		self.objFun = []	
 		#self.fsm = fsm
 	
 	def set_result(self, result):
@@ -59,7 +60,10 @@ class AutoMoDeExperiment:
 	
 	def set_vpi(self, vpistates):
 		self.vpi = vpistates
-	
+
+	def set_objFun(self, objfun):
+		self.objFun = objfun
+
 	def calculate_vpi_for_experiment(self):
 		vpi = []
 		num_of_robots = float(len(self.logs))		
