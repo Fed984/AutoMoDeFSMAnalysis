@@ -719,7 +719,7 @@ def evaluate_different_parameters(originalFSM, newFSM, number_of_episodes, exper
 	print("State values after pruning with ordinary importance sampling : {0}".format([i for i in ord_is_proportional]))
 
 
-	print_performance_estimation(vpi_all, wei_is, wei_is_proportional, ord_is_proportional, [1, 1, 1], ord_is, "Nondiscounted")
+	print_performance_estimation(vpi_all, wei_is, wei_is_proportional, ord_is_proportional, ord_is, None, "Nondiscounted")
 	
 	if(usefull_exp < 40):
 		print("\nWARNING : These results are based on a very small fraction of the total experience and they may not be reliable!")
@@ -747,12 +747,17 @@ def print_performance_estimation(vpi_all, wei_is, wei_is_proportional, ord_is_pr
 	average_wei_reward = average_wei_reward/(len(wei_is))	
 
 	average_prop_reward = 0.0
-	for s in range(0,len(wei_is_proportional)):
-		state_contribution = 1.0
-		if discounted_propotional_state_value[s] != 0.0 :			
-			state_contribution =  wei_is_proportional[s] / discounted_propotional_state_value[s] # old test vpi_all[s]/wei_is[s]
-			# print("aici", s, state_contribution, wei_is_proportional[s], discounted_propotional_state_value[s])
-		average_prop_reward += average_original_reward * state_contribution
+	if discounted_propotional_state_value is None:
+		for s in wei_is_proportional:
+			average_prop_reward += s
+		average_prop_reward *= float(number_of_episodes/len(experiments))
+	else:
+		for s in range(0,len(wei_is_proportional)):
+			state_contribution = 1.0
+			if discounted_propotional_state_value[s] != 0.0 :			
+				state_contribution =  wei_is_proportional[s] / discounted_propotional_state_value[s] # old test vpi_all[s]/wei_is[s]
+				# print("aici", s, state_contribution, wei_is_proportional[s], discounted_propotional_state_value[s])
+			average_prop_reward += average_original_reward * state_contribution
 		# print("sum", average_original_reward * state_contribution)
 			#break
 
