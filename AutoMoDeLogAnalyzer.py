@@ -234,6 +234,10 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 	cstate = 0
 	#print("Analyzing log file   :")	
 	recording_exp = False	
+	exp_all_states = []
+	exp_all_ground = []
+	exp_all_neighbours = []
+
 	exp_states = [0] 
 	exp_transitions = [0]
 	exp_transitions_probabilities = [1]
@@ -274,7 +278,7 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 						episode_tick = 0
 						#print("Saving EPISODE ROBOT {0} OF EXPERIMENT {1} vpi {2} # {3}".format(number_of_episodes,len(experiments),vpi_overall,len(exp_states)))
 						exp.set_startIdx(ctick)	# saving start tick (not usefull since ticks reset)
-						exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions,exp_state_contribution,exp_neighbors,exp_ground]		
+						exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions,exp_state_contribution,exp_neighbors,exp_ground, exp_all_states, exp_all_ground, exp_all_neighbours]	
 						exp.append_logs(exp_log) # save logs of the robot
 						vpi_states = [0]
 						exp_state_contribution = [0]
@@ -282,6 +286,9 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 							vpi_states.append(0) #reinitialize
 							exp_state_contribution.append(0)
 							
+						exp_all_states = []
+						exp_all_ground = []
+						exp_all_neighbours = []
 						exp_states = [0]                    # reinitialize
 						exp_transitions = [0]               # reinitialize
 						exp_transitions_probabilities = [1] # reinitialize
@@ -301,6 +308,18 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 						if( vpi_states[cstate] == 0): #If this state was not visited by this robot
 							vpi_states[cstate] = 1
 							vpi_overall[cstate] += 1 # update the Experiment First Visit count 
+
+						t.next_token()
+						if(t.peek().startswith("--n")): # if the number of neighbors is logged
+							t.next_token()
+							neighbors = int(t.next_token())
+							exp_all_neighbours.append(neighbors)
+						if(t.peek().startswith("--f")): # if the ground sensor is logged
+							t.next_token()
+							gsensor = t.getFloat()
+							exp_all_ground.append(gsensor)
+
+						exp_all_states.append(cstate) #update the states log
 						#print("Current State {} of type {}".format(cstate,t.next_token()))
 			
 					#match = re.search("--c[0-9]+", ctoken)		
@@ -331,11 +350,13 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 							exp_transitions_probabilities.append(probability)# probabilities
 							exp_active_transitions.append(active_transitions)# active transitions
 							exp_neighbors.append(neighbors)
+							exp_all_neighbours.append(neighbors)
 							exp_ground.append(gsensor)
+							exp_all_ground.append(gsensor)
 							#print("Condition {} of type {} has value {} belongs to state {}".format(condition,type,value,previous_state))	
 		elif(recording_exp and line.startswith("[INFO]")): # Beginning of a new experiment 
 			recording_exp = False    # stop recording
-			exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions, exp_state_contribution,exp_neighbors,exp_ground]
+			exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions, exp_state_contribution,exp_neighbors,exp_ground, exp_all_states, exp_all_ground, exp_all_neighbours]	
 			exp.append_logs(exp_log) # save experiment log
 			exp.set_vpi(vpi_overall) # save overall vpi
 			experiments.append(exp)	 # save experiment
@@ -358,7 +379,7 @@ def analyze_logfile(history_file, fsm_log_counter, experiments):
 			cscore = 0 				  # reinitialize
 	
 	if(len(exp_states) > 0): # Save the final experiment
-		exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions, exp_state_contribution,exp_neighbors,exp_ground]
+		exp_log = [exp_states, exp_transitions, exp_transitions_probabilities, exp_active_transitions, exp_state_contribution,exp_neighbors,exp_ground, exp_all_states, exp_all_ground, exp_all_neighbours]	
 		exp.append_logs(exp_log)  # save experiment log
 		exp.set_vpi(vpi_overall)  # save overall vpi
 		#print("Saving EPISODE ROBOT {0} OF EXPERIMENT {1}".format(number_of_robots,len(experiments)))
@@ -643,12 +664,12 @@ def evaluate_different_parameters_discount_factor(originalFSM, newFSM, number_of
 	overall_discounted_state_value = np.zeros(nstates)
 	overall_discounted_proportional_state_value = np.zeros(nstates)
 
-	first_visit = True
-	discount_factor = 0.98
+	first_visit = False
+	discount_factor = 0.9
 
 	for experiment in experiments:
-		weighted_is_state_estimation, ordinary_is_estimation, proportional_weighted_is_state_estimation, proportional_ordinary_is_estimation = experiment.estimateValueStatesUsingImportanceSampling(originalFSM, newFSM, number_of_episodes, experiments, first_visit, discount_factor)
-		discounted_state_value, discounted_propotional_state_value = experiment.calculate_state_values(first_visit, discount_factor)
+		weighted_is_state_estimation, ordinary_is_estimation, proportional_weighted_is_state_estimation, proportional_ordinary_is_estimation = experiment.estimateValueStatesUsingImportanceSamplingWithIntermediate(originalFSM, newFSM, number_of_episodes, experiments, first_visit, discount_factor)
+		discounted_state_value, discounted_propotional_state_value = experiment.calculate_state_values_intermediate_rewards(first_visit, discount_factor)
 		# discounted_state_value = experiment.calculate_vpi_for_experiment()
 		# discounted_propotional_state_value = experiment.calculate_proportional_vpi_for_experiment()
 
@@ -671,14 +692,14 @@ def evaluate_different_parameters_discount_factor(originalFSM, newFSM, number_of
 	print("\n Off-policy analysis using configurable parameters of the new FSM")
 	print("Parameters: First visit only:", first_visit, "; discount factor:", discount_factor)
 	print(commandline_separator)
-	print("State values of the original FSM                 : {0}".format([round(i,4) for i in overall_discounted_state_value]))		
-	print("Weighted state estimation                        : {0}".format([round(i,4) for i in weighted_state_estimation]))
-	print("Ordinary state estimation                        : {0}".format([round(i,4) for i in original_state_estimation]))
-	print("Proportional state values of the original FSM    : {0}".format([round(i,4) for i in overall_discounted_proportional_state_value]))
-	print("Proportional weighted state estimation           : {0}".format([round(i,4) for i in proportional_weighted_state_estimation]))
-	print("Proportional ordinary state estimation           : {0}".format([round(i,4) for i in proportional_original_state_estimation]))
+	print("State values of the original FSM                 : {0}".format([i for i in overall_discounted_state_value]))		
+	print("Weighted state estimation                        : {0}".format([i for i in weighted_state_estimation]))
+	print("Ordinary state estimation                        : {0}".format([i for i in original_state_estimation]))
+	print("Proportional state values of the original FSM    : {0}".format([i for i in overall_discounted_proportional_state_value]))
+	print("Proportional weighted state estimation           : {0}".format([i for i in proportional_weighted_state_estimation]))
+	print("Proportional ordinary state estimation           : {0}".format([i for i in proportional_original_state_estimation]))
 
-	print_performance_estimation(overall_discounted_state_value, weighted_state_estimation, proportional_weighted_state_estimation, proportional_original_state_estimation, original_state_estimation, "Discounted")
+	print_performance_estimation(overall_discounted_state_value, weighted_state_estimation, proportional_weighted_state_estimation, proportional_original_state_estimation, original_state_estimation, overall_discounted_proportional_state_value, "Discounted")
 
 def evaluate_different_parameters(originalFSM, newFSM, number_of_episodes, experiments):
 	
@@ -691,18 +712,18 @@ def evaluate_different_parameters(originalFSM, newFSM, number_of_episodes, exper
 	print(commandline_separator)	
 	print("State values of the original FSM                             : {0}".format([round(i,4) for i in vpi_all]))		
 	print("Number of episodes contributing to the analysis              : {0}/{1}".format(usefull_exp,number_of_episodes))
-	print("State values after pruning with ordinary importance sampling : {0}".format([round(i,4) for i in ord_is]))
-	print("State values after pruning with weighted importance sampling : {0}".format([round(i,4) for i in wei_is]))
-	print("State values using proportional reward calculation           : {0}".format([round(i,4) for i in vpi_proportional]))
-	print("State values after pruning with weighted importance sampling : {0}".format([round(i,4) for i in wei_is_proportional]))
-	print("State values after pruning with ordinary importance sampling : {0}".format([round(i,4) for i in ord_is_proportional]))
+	print("State values after pruning with ordinary importance sampling : {0}".format([i for i in ord_is]))
+	print("State values after pruning with weighted importance sampling : {0}".format([i for i in wei_is]))
+	print("State values using proportional reward calculation           : {0}".format([i for i in vpi_proportional]))
+	print("State values after pruning with weighted importance sampling : {0}".format([i for i in wei_is_proportional]))
+	print("State values after pruning with ordinary importance sampling : {0}".format([i for i in ord_is_proportional]))
 
-	print_performance_estimation(vpi_all, wei_is, wei_is_proportional, ord_is_proportional, ord_is)
+	print_performance_estimation(vpi_all, wei_is, wei_is_proportional, ord_is_proportional, [1, 1, 1], ord_is)
 	
 	if(usefull_exp < 40):
 		print("\nWARNING : These results are based on a very small fraction of the total experience and they may not be reliable!")
 
-def print_performance_estimation(vpi_all, wei_is, wei_is_proportional, ord_is_proportional, ord_is, prefix=""):
+def print_performance_estimation(vpi_all, wei_is, wei_is_proportional, ord_is_proportional, ord_is, discounted_propotional_state_value, prefix=""):
 	average_original_reward = 0
 
 	for experiment in experiments:
@@ -717,20 +738,30 @@ def print_performance_estimation(vpi_all, wei_is, wei_is_proportional, ord_is_pr
 		state_contribution = 1.0
 		if vpi_all[s] != 0.0 :			
 			state_contribution =  wei_is[s]/vpi_all[s] # old test vpi_all[s]/wei_is[s]
+			# print(s, state_contribution)
 		average_wei_reward += average_original_reward * state_contribution
+		# print("sum", average_original_reward * state_contribution)
 			#break
 
 	average_wei_reward = average_wei_reward/(len(wei_is))	
-	average_prop_reward = 0.0
-	for s in wei_is_proportional:
-		average_prop_reward += s
 
-	average_prop_reward *= float(number_of_episodes/len(experiments))	
+	average_prop_reward = 0.0
+	for s in range(0,len(wei_is_proportional)):
+		state_contribution = 1.0
+		if discounted_propotional_state_value[s] != 0.0 :			
+			state_contribution =  wei_is_proportional[s] / discounted_propotional_state_value[s] # old test vpi_all[s]/wei_is[s]
+			# print("aici", s, state_contribution, wei_is_proportional[s], discounted_propotional_state_value[s])
+		average_prop_reward += average_original_reward * state_contribution
+		# print("sum", average_original_reward * state_contribution)
+			#break
+
+	average_prop_reward = average_prop_reward / len(wei_is_proportional)
 	
 	average_ord_prop_reward = 0.0
 	for s in ord_is_proportional:
 		average_ord_prop_reward += s
 	
+	print(average_ord_prop_reward, number_of_episodes, len(experiments))
 	average_ord_prop_reward *= float(number_of_episodes/len(experiments))	
 		
 	average_ord_reward = 0.0

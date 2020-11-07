@@ -39,7 +39,7 @@ class AutoMoDeExperiment:
 		self.startIdx = 0
 		self.endIdx = 0
 		self.vpi = []	
-		self.objFun = []	
+		self.objFun = []
 		#self.fsm = fsm
 	
 	def set_result(self, result):
@@ -120,6 +120,56 @@ class AutoMoDeExperiment:
 
 		return overall_state_values / len(self.logs), overall_state_proportional_values / len(self.logs)
 	
+	# Compute the state values and proportional state values of the original experiment using
+	# first visit or every visit and discount factor.
+	def calculate_state_values_intermediate_rewards(self, first_visit=True, discounted_factor=0.98):
+		timesteps = self.endIdx+1
+		overall_state_values = np.zeros(self.number_of_states())
+		overall_state_proportional_values = np.zeros(self.number_of_states())
+		num_of_robots = float(len(self.logs))
+		per_robot_reward = self.result/float(num_of_robots)
+		state_proportional_rewards = np.zeros(self.number_of_states())
+		state_number_of_visits = np.zeros(self.number_of_states())
+
+		# state_values = np.zeros(self.number_of_states())
+		# state_values_proportional = np.zeros(self.number_of_states())
+		state_values = []
+		state_values_proportional = []
+
+		for s in range(0, self.number_of_states()):	
+			state_values.append(mpfr(0))
+			state_values_proportional.append(mpfr(0))
+
+		for episode in self.logs:
+			g = mpfr(0)
+			g_prop = [] #np.zeros(self.number_of_states())
+			for s in range(0, self.number_of_states()):		
+				g_prop.append(mpfr(0))
+		
+			
+			per_robot_reward = self.result/float(num_of_robots)
+
+			for index, state in reversed(list(enumerate(episode[7][:-1]))):
+				per_robot_reward = self.objFun[index] / float(num_of_robots) # reward for each robot/episode
+				for s in range(0, self.number_of_states()):				
+					state_proportional_rewards[s] = (episode[4][s]/float(timesteps) * per_robot_reward)	
+
+				g = mpfr(g * discounted_factor + per_robot_reward)
+				g_prop[state] = mpfr(g_prop[state] * discounted_factor + state_proportional_rewards[state])
+				
+				if per_robot_reward != 0 and (not state in episode[7][0:index] or not first_visit):
+					state_number_of_visits[state] += 1
+					state_values[state] += g
+					state_values_proportional[state] += g_prop[state]
+					# print(index, g,  per_robot_reward, state_values / state_number_of_visits)
+
+
+		for s in range(0, self.number_of_states()):
+			if state_number_of_visits[s] != 0:
+				overall_state_values[s] = state_values[s] / state_number_of_visits[s]
+				overall_state_proportional_values[s] = state_values_proportional[s] / state_number_of_visits[s]
+
+		return overall_state_values, overall_state_proportional_values
 	
 	def calculate_proportional_vpi_for_experiment(self):
 		vpi = [0.0 for i in range(0, len(self.vpi))]
@@ -328,6 +378,107 @@ class AutoMoDeExperiment:
 	def number_of_states(self):
 		return len(self.vpi)
 
+
+	def estimateValueStatesUsingImportanceSamplingWithIntermediate(self, old_fsm, new_fsm, number_of_episodes, experiments, first_visit=True, discount_factor=0.98):
+		timesteps = self.endIdx+1
+		num_of_robots = float(len(self.logs)) # number of robots or episodes per experiment
+		weighted_importance_sampling_state_estimation = np.zeros(self.number_of_states())
+		ordinary_importance_sampling_state_estimation = np.zeros(self.number_of_states())
+		proportional_weighted_importance_sampling_state_estimation = np.zeros(self.number_of_states())
+		proportional_ordinary_importance_sampling_state_estimation = np.zeros(self.number_of_states())
+
+		nominator = [] #np.zeros(self.number_of_states())
+		weight_denominator = [] #np.zeros(self.number_of_states())
+		ordinary_denominator = [] #np.zeros(self.number_of_states())
+		proportional_nominator = []
+		
+		for s in range(0, self.number_of_states()):		
+			nominator.append(mpfr(0))
+			weight_denominator.append(mpfr(0))
+			ordinary_denominator.append(mpfr(0))
+			proportional_nominator.append(mpfr(0))
+
+		for episode in self.logs: 
+			importance_sampling_coefficient = mpfr(1.0)
+			
+			state_proportional_rewards = np.zeros(self.number_of_states())
+
+			g = mpfr(0)
+			g_prop = [] #np.zeros(self.number_of_states())
+			for s in range(0, self.number_of_states()):		
+				g_prop.append(mpfr(0))
+			
+			ordinary_denominator = np.zeros(self.number_of_states())
+			visited = np.zeros(self.number_of_states())
+
+			for index, state in reversed(list(enumerate(episode[7][:-1]))):
+				per_robot_reward = self.objFun[index] / float(num_of_robots) # reward for each robot/episode
+				for s in range(0, self.number_of_states()):				
+					state_proportional_rewards[s] = (episode[4][s]/float(timesteps) * per_robot_reward)	
+
+				next_state = episode[7][index + 1] # previous state
+				tr_neighbors = episode[9]
+				tr_ground = episode[8]
+
+				# print("tr_neighbors, tr_ground", tr_neighbors, tr_ground, index)
+
+				behavior_prob_transition = old_fsm[state].prob_of_reaching_state(next_state, old_fsm, tr_neighbors[index + 1], tr_ground[index + 1])
+				target_prob_transition = new_fsm[state].prob_of_reaching_state(next_state, new_fsm,tr_neighbors[index + 1],tr_ground[index + 1]) # probability that the target policy transitions from the previous state to the current state
+
+				if target_prob_transition == 0:
+					target_prob_transition = sys.float_info.epsilon
+
+				if behavior_prob_transition == 0:
+					behavior_prob_transition = sys.float_info.epsilon
+
+				importance_sampling_coefficient *= (mpfr(target_prob_transition) / mpfr(behavior_prob_transition))
+				# print("Transition from state", state, "to", next_state, importance_sampling_coefficient, tr_neighbors[index], tr_ground[index], new_fsm,tr_neighbors[index],tr_ground[index])
+				# print("isc2", state, next_state, target_prob_transition, behavior_prob_transition, (mpfr(target_prob_transition) / behavior_prob_transition), importance_sampling_coefficient)
+				# print("is", importance_sampling_coefficient, target_prob_transition, behavior_prob_transition)
+
+				g = mpfr(g * discount_factor + importance_sampling_coefficient * per_robot_reward)
+				# print(index, g,  per_robot_reward, importance_sampling_coefficient, nominator, weight_denominator)
+				g_prop[state] = mpfr(g_prop[state] * discount_factor + importance_sampling_coefficient * state_proportional_rewards[state])
+				# print("importance sampled", importance_sampling_coefficient * per_robot_reward)
+
+				if per_robot_reward != 0 and (not state in episode[7][0:index] or not first_visit):
+					nominator[state] += g
+
+					# print(nominator, state, "aici", [pula])
+					weight_denominator[state] += importance_sampling_coefficient
+					# print(weight_denominator)
+					proportional_nominator[state] += g_prop[state] 
+					# print("add")
+					ordinary_denominator[state] += 1
+
+				visited[state] = 1
+
+				# print("hallo", nominator, weight_denominator)
+
+			# print("Resulting is_coef 2 is ", importance_sampling_coefficient, g)
+
+		for s in range(0, self.number_of_states()):
+			proportional_weighted_importance_sampling_estimation = (proportional_nominator[s] / weight_denominator[s]) if weight_denominator[s] > 0 else 0
+			proportional_ordinary_importance_sampling_estimation = (proportional_nominator[s] / ordinary_denominator[s]) if ordinary_denominator[s] > 0 else 0
+			weighted_importance_sampling_estimation =  (nominator[s] / weight_denominator[s]) if weight_denominator[s] else 0
+			ordinary_importance_sampling_estimation = nominator[s] / ordinary_denominator[s] if ordinary_denominator[s] > 0 else 0
+
+			# if not np.isnan(weighted_importance_sampling_estimation):
+			weighted_importance_sampling_state_estimation[s] = weighted_importance_sampling_estimation
+
+			# if not np.isnan(ordinary_importance_sampling_estimation):
+			ordinary_importance_sampling_state_estimation[s] = ordinary_importance_sampling_estimation
+
+			# if not np.isnan(proportional_weighted_importance_sampling_estimation):
+			proportional_weighted_importance_sampling_state_estimation[s] = proportional_weighted_importance_sampling_estimation
+
+			# if not np.isnan(proportional_ordinary_importance_sampling_estimation):
+			proportional_ordinary_importance_sampling_state_estimation[s] = proportional_ordinary_importance_sampling_estimation
+
+		return weighted_importance_sampling_state_estimation, ordinary_importance_sampling_state_estimation, proportional_weighted_importance_sampling_state_estimation, proportional_ordinary_importance_sampling_state_estimation
+
+
+
 	def estimateValueStatesUsingImportanceSampling(self, old_fsm, new_fsm, number_of_episodes, experiments, first_visit=True, discount_factor=0.98):
 		timesteps = self.endIdx+1
 		num_of_robots = float(len(self.logs)) # number of robots or episodes per experiment
@@ -341,14 +492,17 @@ class AutoMoDeExperiment:
 			proportional_nominator = np.zeros(self.number_of_states())
 			state_proportional_rewards = np.zeros(self.number_of_states())
 
-			nominator = np.zeros(self.number_of_states())
-			weight_denominator = np.zeros(self.number_of_states())
-			ordinary_denominator = np.zeros(self.number_of_states())
+			nominator = [] #np.zeros(self.number_of_states())
+			weight_denominator = [] #np.zeros(self.number_of_states())
+			ordinary_denominator = [] #np.zeros(self.number_of_states())
 			per_robot_reward = self.result/float(num_of_robots) # reward for each robot/episode
 			visited = np.zeros(self.number_of_states())
 
 			for s in range(0, self.number_of_states()):				
 				state_proportional_rewards[s] = (episode[4][s]/float(timesteps) * per_robot_reward)	
+				nominator[s] = mpfr(0)
+				weight_denominator[s] = mpfr(0)
+				ordinary_denominator[s] = mpfr(0)
 
 			for index, state in reversed(list(enumerate(episode[0]))):
 				if index == 0:
@@ -428,7 +582,10 @@ class AutoMoDeExperiment:
 				tr_prob = episode[2] # get the measured probabilities for the behavior policy 
 				tr_actives = episode[3] # get the number of active transitions for the behavior policy
 				tr_neighbors = episode[5]
-				tr_ground = episode[6]				
+				tr_ground = episode[6]		
+
+				# print("tr_neighbors, tr_ground", tr_neighbors, tr_ground, idx)
+
 				if not(first_visit_states[state]):
 					first_visit_states[state] = True # if a state does not appear in the history it does not get a reward
 					#accumulated_is[state] = 1.0
@@ -445,10 +602,13 @@ class AutoMoDeExperiment:
 					# transition probability target FSM
 					prob_transition_target = new_fsm[previous_state].prob_of_reaching_state(state, new_fsm,tr_neighbors[idx],tr_ground[idx]) # probability that the target policy transitions from the previous state to the current state
 					#prob_transition_target_p = new_fsm[previous_state].get_transition_probability(episode[1][idx],tr_neighbors[idx],tr_ground[idx])/tr_actives[idx]
-																	
+
+					# print("Transition from state2", previous_state, "to", state, is_coef, tr_neighbors[idx], tr_ground[idx], new_fsm,tr_neighbors[idx],tr_ground[idx])												
 				if prob_transition != prob_transition_target:	
 					#print("Transition from {0} to {1} condition {2} : old probability {3} ( {4} ) / new probability  {5} ( {6} )".format(previous_state,state,episode[1][idx],prob_transition,prob_transition_p,prob_transition_target,prob_transition_target_p))				
 					is_coef = is_coef * mpfr(prob_transition_target)/(prob_transition)
+
+					
 					#print("is_coef : {0}".format(is_coef))			
 
 			for s in range(0, number_of_states):				
@@ -456,7 +616,7 @@ class AutoMoDeExperiment:
 					state_proportional_reward = (episode[4][s]/float(timesteps) * per_robot_reward)	
 					episode_val = is_coef *  state_proportional_reward			
 					pwis[s] += episode_val # combines the state values per each episode
-					wis[s]  += is_coef *  per_robot_reward # combines the state values per 
+					wis[s]  += is_coef *  per_robot_reward # combines the state values per
 					#print("Episode end state {0} : wis {1} IS coef {2} ".format(s,wis[s],is_coef))
 					
 				wis_den[s] += is_coef

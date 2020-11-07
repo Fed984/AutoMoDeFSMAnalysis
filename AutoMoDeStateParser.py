@@ -206,6 +206,7 @@ class AutoMoDeFSMState:
 			#print("State {0} Transition {1} type 4 -> prob {2} [ p {3} | w {4} | n {5}]".format(self.id, transition,prob,self.transition_p[transition],self.transition_w[transition],num_neighbors))		
 		#if prob == 0:# and transition == 0:
 			#print("State {0} Transition {1} type {2} ground {3} neighbors {4} P {5} -> prob {6}".format(self.id, transition,type_name[type],ground_sensor,num_neighbors,self.transition_p[transition],prob))
+
 		return prob 
 	
 	def prob_of_reaching_state(self, target, states, num_neighbors=0, ground_sensor=-1):		
