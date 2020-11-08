@@ -420,8 +420,6 @@ class AutoMoDeExperiment:
 				tr_neighbors = episode[9]
 				tr_ground = episode[8]
 
-				# print("tr_neighbors, tr_ground", tr_neighbors, tr_ground, index)
-
 				behavior_prob_transition = old_fsm[state].prob_of_reaching_state(next_state, old_fsm, tr_neighbors[index + 1], tr_ground[index + 1])
 				target_prob_transition = new_fsm[state].prob_of_reaching_state(next_state, new_fsm,tr_neighbors[index + 1],tr_ground[index + 1]) # probability that the target policy transitions from the previous state to the current state
 
@@ -432,30 +430,18 @@ class AutoMoDeExperiment:
 					behavior_prob_transition = sys.float_info.epsilon
 
 				importance_sampling_coefficient *= (mpfr(target_prob_transition) / mpfr(behavior_prob_transition))
-				# print("Transition from state", state, "to", next_state, importance_sampling_coefficient, tr_neighbors[index], tr_ground[index], new_fsm,tr_neighbors[index],tr_ground[index])
-				# print("isc2", state, next_state, target_prob_transition, behavior_prob_transition, (mpfr(target_prob_transition) / behavior_prob_transition), importance_sampling_coefficient)
-				# print("is", importance_sampling_coefficient, target_prob_transition, behavior_prob_transition)
 
 				g = mpfr(g * discount_factor + importance_sampling_coefficient * per_robot_reward)
-				# print(index, g,  per_robot_reward, importance_sampling_coefficient, nominator, weight_denominator)
 				g_prop[state] = mpfr(g_prop[state] * discount_factor + importance_sampling_coefficient * state_proportional_rewards[state])
-				# print("importance sampled", importance_sampling_coefficient * per_robot_reward)
 
 				if per_robot_reward != 0 and (not state in episode[7][0:index] or not first_visit):
 					nominator[state] += g
 
-					# print(nominator, state, "aici", [pula])
 					weight_denominator[state] += importance_sampling_coefficient
-					# print(weight_denominator)
 					proportional_nominator[state] += g_prop[state] 
-					# print("add")
 					ordinary_denominator[state] += 1
 
 				visited[state] = 1
-
-				# print("hallo", nominator, weight_denominator)
-
-			# print("Resulting is_coef 2 is ", importance_sampling_coefficient, g)
 
 		for s in range(0, self.number_of_states()):
 			proportional_weighted_importance_sampling_estimation = (proportional_nominator[s] / weight_denominator[s]) if weight_denominator[s] > 0 else 0
