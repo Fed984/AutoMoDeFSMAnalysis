@@ -3,7 +3,7 @@
 input="./params_final_choice.txt"
 
 rm results.csv
-echo "average_performance_original_FSM, discounted_OIS, proportional_discounted_WIS, proportional_discounted_OIS, WIS, OIS, proportional_WIS, proportional_OIS, average_simulation" >> results.csv
+echo "average_performance_original_FSM, discounted_WIS, discounted_OIS, proportional_discounted_WIS, proportional_discounted_OIS, WIS, OIS, proportional_WIS, proportional_OIS, average_simulation" >> results.csv
 
 while IFS= read -r line
 do
@@ -18,6 +18,7 @@ do
   output="$(python3.8 ../AutoMoDeLogAnalyzer.py ./traces/$execution_number-fsmlog -pa --newfsm-config $arguments)"
 
   average_performance_original_FSM=$(echo "$output" | grep "Discounted Average performance of the original FSM " | sed 's/[0-9]*.[^0-9]*//')
+  discounted_WIS=$(echo "$output" | grep "Discounted WIS Expected average performance of the pruned FSM " | sed 's/[0-9]*.[^0-9]*//')
   discounted_OIS=$(echo "$output" | grep "Discounted OIS Expected average performance of the pruned FSM " | sed 's/[0-9]*.[^0-9]*//')
   proportional_discounted_WIS=$(echo "$output" | grep "Discounted WIS Expected average performance with the proportional reward " | sed 's/[0-9]*.[^0-9]*//')
   proportional_discounted_OIS=$(echo "$output" | grep "Discounted OIS Expected average performance with the proportional reward " | sed 's/[0-9]*.[^0-9]*//')
@@ -27,6 +28,6 @@ do
   proportional_WIS=$(echo "$output" | grep "Nondiscounted WIS Expected average performance with the proportional reward " | sed 's/[0-9]*.[^0-9]*//')
   proportional_OIS=$(echo "$output" | grep "Nondiscounted OIS Expected average performance with the proportional reward" | sed 's/[0-9]*.[^0-9]*//')
 
-  average_simulation="$(for i in {1..30}; do automode_main -t -n -c foraging.argos --seed RNDSEED --fsm-config $arguments | grep Score | sed 's/[^0-9]*//'; done | awk '{ total += $1; count++ } END { print total/count }')"
-  echo "$average_performance_original_FSM, $discounted_OIS, $proportional_discounted_WIS, $proportional_discounted_OIS, $WIS, $OIS, $proportional_WIS, $proportional_OIS, $average_simulation" >> results.csv
+  average_simulation="$(for i in {1..30}; do ~/ARGoS3-AutoMoDe/bin/automode_main -t -n -c foraging.argos --seed RNDSEED --fsm-config $arguments | grep Score | sed 's/[^0-9]*//'; done | awk '{ total += $1; count++ } END { print total/count }')"
+  echo "$average_performance_original_FSM, $discounted_WIS, $discounted_OIS, $proportional_discounted_WIS, $proportional_discounted_OIS, $WIS, $OIS, $proportional_WIS, $proportional_OIS, $average_simulation" >> results.csv
 done < "$input"
