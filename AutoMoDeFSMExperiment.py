@@ -473,10 +473,13 @@ class AutoMoDeExperiment:
 				proportional_weighted_importance_sampling_state_estimation[s] += prop_rewards[s][r] * importance_samplings[s][r]
 				proportional_ordinary_importance_sampling_state_estimation[s] += prop_rewards[s][r] * importance_samplings[s][r]
 
-			weighted_importance_sampling_state_estimation[s] /= sum_importance_samplings
-			ordinary_importance_sampling_state_estimation[s] /= len(rewards[s])
-			proportional_weighted_importance_sampling_state_estimation[s] /= sum_importance_samplings
-			proportional_ordinary_importance_sampling_state_estimation[s] /= len(rewards[s])
+			if sum_importance_samplings != 0:
+				weighted_importance_sampling_state_estimation[s] /= sum_importance_samplings
+				proportional_weighted_importance_sampling_state_estimation[s] /= sum_importance_samplings
+
+			if len(rewards[s]) != 0:
+				ordinary_importance_sampling_state_estimation[s] /= len(rewards[s])
+				proportional_ordinary_importance_sampling_state_estimation[s] /= len(rewards[s])
 
 		return weighted_importance_sampling_state_estimation, ordinary_importance_sampling_state_estimation, proportional_weighted_importance_sampling_state_estimation, proportional_ordinary_importance_sampling_state_estimation
 
