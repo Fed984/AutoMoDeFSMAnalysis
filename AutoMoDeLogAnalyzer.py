@@ -665,7 +665,7 @@ def evaluate_different_parameters_discount_factor(originalFSM, newFSM, number_of
 	overall_discounted_proportional_state_value = np.zeros(nstates)
 
 	first_visit = False
-	discount_factor = 0.9
+	discount_factor = 0.7
 
 	for experiment in experiments:
 		weighted_is_state_estimation, ordinary_is_estimation, proportional_weighted_is_state_estimation, proportional_ordinary_is_estimation = experiment.estimateValueStatesUsingImportanceSamplingWithIntermediate(originalFSM, newFSM, number_of_episodes, experiments, first_visit, discount_factor)

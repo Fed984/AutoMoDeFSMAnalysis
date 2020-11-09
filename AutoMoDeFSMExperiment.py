@@ -391,12 +391,20 @@ class AutoMoDeExperiment:
 		weight_denominator = [] #np.zeros(self.number_of_states())
 		ordinary_denominator = [] #np.zeros(self.number_of_states())
 		proportional_nominator = []
+
+		rewards = []
+		prop_rewards = []
+		importance_samplings = []
 		
 		for s in range(0, self.number_of_states()):		
 			nominator.append(mpfr(0))
 			weight_denominator.append(mpfr(0))
 			ordinary_denominator.append(mpfr(0))
 			proportional_nominator.append(mpfr(0))
+
+			rewards.append([])
+			importance_samplings.append([])
+			prop_rewards.append([])
 
 		for episode in self.logs: 
 			importance_sampling_coefficient = mpfr(1.0)
@@ -431,35 +439,44 @@ class AutoMoDeExperiment:
 
 				importance_sampling_coefficient *= (mpfr(target_prob_transition) / mpfr(behavior_prob_transition))
 
-				g = mpfr(g * discount_factor + importance_sampling_coefficient * per_robot_reward)
-				g_prop[state] = mpfr(g_prop[state] * discount_factor + importance_sampling_coefficient * state_proportional_rewards[state])
+				g = mpfr(g * discount_factor + per_robot_reward)
+				g_prop[state] = mpfr(g_prop[state] * discount_factor + state_proportional_rewards[state])
 
 				if per_robot_reward != 0 and (not state in episode[7][0:index] or not first_visit):
+					rewards[state].append(g)
+					prop_rewards[state].append(g_prop[state])
+					importance_samplings[state].append(importance_sampling_coefficient)
+					
 					nominator[state] += g
 
 					weight_denominator[state] += importance_sampling_coefficient
 					proportional_nominator[state] += g_prop[state] 
 					ordinary_denominator[state] += 1
 
+					# print("State getting reward", state, "at index", index)
+					# if (state == 0):
+					# 	print("add to nominator", g, "add to weight denominator", importance_sampling_coefficient)
+
 				visited[state] = 1
+			
+			# print(nominator, weight_denominator, ordinary_denominator)
+			# break
 
 		for s in range(0, self.number_of_states()):
-			proportional_weighted_importance_sampling_estimation = (proportional_nominator[s] / weight_denominator[s]) if weight_denominator[s] > 0 else 0
-			proportional_ordinary_importance_sampling_estimation = (proportional_nominator[s] / ordinary_denominator[s]) if ordinary_denominator[s] > 0 else 0
-			weighted_importance_sampling_estimation =  (nominator[s] / weight_denominator[s]) if weight_denominator[s] else 0
-			ordinary_importance_sampling_estimation = nominator[s] / ordinary_denominator[s] if ordinary_denominator[s] > 0 else 0
+			sum_importance_samplings = mpfr(0)
 
-			# if not np.isnan(weighted_importance_sampling_estimation):
-			weighted_importance_sampling_state_estimation[s] = weighted_importance_sampling_estimation
+			for r in range(0, len(rewards[s])):
+				sum_importance_samplings += importance_samplings[s][r]
 
-			# if not np.isnan(ordinary_importance_sampling_estimation):
-			ordinary_importance_sampling_state_estimation[s] = ordinary_importance_sampling_estimation
+				weighted_importance_sampling_state_estimation[s] += rewards[s][r] * importance_samplings[s][r]
+				ordinary_importance_sampling_state_estimation[s] += rewards[s][r] * importance_samplings[s][r]
+				proportional_weighted_importance_sampling_state_estimation[s] += prop_rewards[s][r] * importance_samplings[s][r]
+				proportional_ordinary_importance_sampling_state_estimation[s] += prop_rewards[s][r] * importance_samplings[s][r]
 
-			# if not np.isnan(proportional_weighted_importance_sampling_estimation):
-			proportional_weighted_importance_sampling_state_estimation[s] = proportional_weighted_importance_sampling_estimation
-
-			# if not np.isnan(proportional_ordinary_importance_sampling_estimation):
-			proportional_ordinary_importance_sampling_state_estimation[s] = proportional_ordinary_importance_sampling_estimation
+			weighted_importance_sampling_state_estimation[s] /= sum_importance_samplings
+			ordinary_importance_sampling_state_estimation[s] /= len(rewards[s])
+			proportional_weighted_importance_sampling_state_estimation[s] /= sum_importance_samplings
+			proportional_ordinary_importance_sampling_state_estimation[s] /= len(rewards[s])
 
 		return weighted_importance_sampling_state_estimation, ordinary_importance_sampling_state_estimation, proportional_weighted_importance_sampling_state_estimation, proportional_ordinary_importance_sampling_state_estimation
 
