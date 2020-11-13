@@ -210,6 +210,7 @@ class AutoMoDeFSMState:
 	
 	def prob_of_reaching_state(self, target, states, num_neighbors=0, ground_sensor=-1):		
 		if(self.loop):
+			#print("Self {0} target {1} loop!".format(self.original_id,target))
 			self.loop = False
 			return 0.0
 			
@@ -237,17 +238,20 @@ class AutoMoDeFSMState:
 		#if(target > self.id):			
 		#	smap = self.states_mapping[target-1] #Set smap to the correct transition target for target
 		
-		prob = 0 #Start with 0 since there can be more than one transition to target
+		prob = 0.0 #Start with 0 since there can be more than one transition to target
 		#for idx,destination in enumerate(self.transition_destination):
 		for idx in active_transitions:
 			destination = self.transition_destination[idx]
-			#print("State {0} Transition {1} to {2} - target {3} {4} ".format(self.id,self.transition_type[idx],destination,target, states[target].original_id))
-			if destination == smap : #if state has a transition to target							
+			#print("State {0} Transition {1} to {2} - target {3} {4} smap {5} taken? {6}".format(self.id,self.transition_type[idx],destination,target, states[target].original_id,smap,destination == smap))
+			if destination == smap : #if state has a transition to target			
 				tprob = self.get_transition_probability(idx,num_neighbors,ground_sensor)
+				#print("State {0} Transition {1} to {2} - probability = tprob {3} neighbors {4} ground {5}".format(self.id,self.transition_type[idx],destination,tprob,num_neighbors,ground_sensor))
 				prob += tprob/float(num) #Add the probability of taking that transition
 		
 		#if(self.id == 0):
 		#	print("State {0} probability of reaching directly state {1} : {2}".format(self.id, target, prob))
+			#if self.loop == True:
+			#print("State {0} probability of reaching directly state {1} : {2}".format(self.id, target, prob))
 			
 		if prob == 0 : #There is no direct transition to target
 			#for idx,destination in enumerate(self.transition_destination) :			
@@ -256,16 +260,19 @@ class AutoMoDeFSMState:
 				if(true_destination >= self.id):
 					true_destination = destination+1
 					#print("State {5} target {4} -> true {0} vs real {1} : {2} destinations {3}".format(true_destination, states[true_destination].id,self.states_mapping,self.transition_destination,target,self.original_id))				
+				#print("State {5} target {4} -> true {0} vs real {1} : {2} destinations {3} loop? {6}".format(true_destination, states[true_destination].id,states[true_destination].states_mapping,states[true_destination].transition_destination,target,self.original_id,self.loop))
+					
 				self.loop = True
-				nprob = states[true_destination].prob_of_reaching_state(target,states,num_neighbors,ground_sensor)
-				#print("State {5} target {4} -> true {0} vs real {1} : {2} destinations {3} = {6}".format(true_destination, states[true_destination].id,states[true_destination].states_mapping,states[true_destination].transition_destination,target,self.original_id,nprob))
+				if not(states[true_destination].loop):
+					nprob = states[true_destination].prob_of_reaching_state(target,states,num_neighbors,ground_sensor)
+				#print("State {5} target {4} -> true {0} vs real {1} : {2} destinations {3} = {6} loop? {7}".format(true_destination, states[true_destination].id,states[true_destination].states_mapping,states[true_destination].transition_destination,target,self.original_id,nprob,self.loop))				
 				#nprob *= (self.transition_p[idx]/float(num))
-				nprob *= self.get_transition_probability(idx,num_neighbors,ground_sensor)/float(num)
-				if(nprob > prob):
-					prob = nprob
-				#print("State {0} probability of reaching indirectly state {1} : {2}".format(self.id, target, prob))
-		if prob == 0:
-			prob = 0.0
+					nprob *= self.get_transition_probability(idx,num_neighbors,ground_sensor)/float(num)
+					if(nprob > prob):
+						prob = nprob
+					#print("State {0} probability of reaching indirectly state {1} : {2}".format(self.id, target, prob))
+		#if prob == 0:
+			#prob = 0.0
 			#print("WARNING: from state {0} it is impossible to reach state {1}!".format(self.id, target))
 			
 		return prob
