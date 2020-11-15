@@ -1,6 +1,6 @@
 source('./errorBarsE.R')
 
-data <- read.csv(file = 'results__8.csv')
+data <- read.csv(file = 'results.csv')
 
 data <- transform(data, naive = ((average_performance_original_FSM - average_simulation) * (average_performance_original_FSM - average_simulation)) / average_simulation)
 data <- transform(data, d_WIS = ((discounted_WIS - average_simulation) * (discounted_WIS - average_simulation)) / average_simulation)
