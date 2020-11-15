@@ -2,7 +2,6 @@
 
 input="./params_final_choice.txt"
 
-rm results.csv
 echo "average_performance_original_FSM, discounted_WIS, discounted_OIS, proportional_discounted_WIS, proportional_discounted_OIS, WIS, OIS, proportional_WIS, proportional_OIS, average_simulation" >> results.csv
 
 while IFS= read -r line
