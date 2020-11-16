@@ -14,4 +14,4 @@ data <- transform(data, ud_p_OIS = ((proportional_OIS - average_simulation) * (p
 
 data
 
-error.barsEnhanced(data[, c("naive", "d_WIS", "p_d_WIS", "ud_WIS", "ud_p_WIS") ], xlab="test", ylim=c(0, 15), comparing.lines=TRUE, yaxt="s")
+error.barsEnhanced(data[, c("naive", "d_WIS", "p_d_WIS", "ud_WIS", "ud_p_WIS") ], xlab="", ylim=c(0, 15), comparing.lines=TRUE, yaxt="s")

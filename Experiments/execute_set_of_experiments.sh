@@ -34,17 +34,17 @@ do
   output="$($PYTHON $AUTOMODE_ANALYZER ./traces/$execution_number-fsmlog -pa --newfsm-config $arguments)"
 
   # Extract the data with discount factor from the output
-  average_performance_original_FSM=$(echo "$output" | grep "Average performance of the original FSM " | sed 's/[0-9]*.[^0-9]*//')
+  average_performance_original_FSM=$(echo "$output" | grep "^Average performance of the original FSM " | sed 's/[0-9]*.[^0-9]*//')
   discounted_WIS=$(echo "$output" | grep "Discounted WIS Expected average performance of the pruned FSM " | sed 's/[0-9]*.[^0-9]*//')
   discounted_OIS=$(echo "$output" | grep "Discounted OIS Expected average performance of the pruned FSM " | sed 's/[0-9]*.[^0-9]*//')
   proportional_discounted_WIS=$(echo "$output" | grep "Discounted WIS Expected average performance with the proportional reward " | sed 's/[0-9]*.[^0-9]*//')
   proportional_discounted_OIS=$(echo "$output" | grep "Discounted OIS Expected average performance with the proportional reward " | sed 's/[0-9]*.[^0-9]*//')
   
   # Extract the data without discount factor from the output
-  WIS=$(echo "$output" | grep "WIS Expected average performance of the pruned FSM" | sed 's/[0-9]*.[^0-9]*//')
-  OIS=$(echo "$output" | grep "OIS Expected average performance of the pruned FSM" | sed 's/[0-9]*.[^0-9]*//')
-  proportional_WIS=$(echo "$output" | grep "WIS Expected average performance with the proportional reward " | sed 's/[0-9]*.[^0-9]*//')
-  proportional_OIS=$(echo "$output" | grep "OIS Expected average performance with the proportional reward" | sed 's/[0-9]*.[^0-9]*//')
+  WIS=$(echo "$output" | grep "^WIS Expected average performance of the pruned FSM " | sed 's/[0-9]*.[^0-9]*//')
+  OIS=$(echo "$output" | grep "^OIS Expected average performance of the pruned FSM " | sed 's/[0-9]*.[^0-9]*//')
+  proportional_WIS=$(echo "$output" | grep "^WIS Expected average performance with the proportional reward " | sed 's/[0-9]*.[^0-9]*//')
+  proportional_OIS=$(echo "$output" | grep "^OIS Expected average performance with the proportional reward " | sed 's/[0-9]*.[^0-9]*//')
 
   # Perform multiple automode simulations in order to estimate the average performance of the modified FSM in order to compute the mean squared error metric
   average_simulation="$(for i in {1..30}; do $AUTOMODE_EXEC -t -n -c foraging.argos --seed RNDSEED --fsm-config $arguments | grep Score | sed 's/[^0-9]*//'; done | awk '{ total += $1; count++ } END { print total/count }')"
